@@ -5,109 +5,51 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🐺 Scout SJO N°466 - Sistema de Gestión</title>
     <style>
-        /* ===== PALETA SCOUT ===== */
         :root {
             --amarillo: #FFD700;
             --amarillo-oscuro: #DAA520;
             --marron: #8B4513;
-            --marron-claro: #A0522D;
             --blanco: #FFFFFF;
             --negro: #2C1810;
             --gris-claro: #F5F5F5;
         }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, var(--amarillo) 0%, var(--amarillo-oscuro) 100%);
             min-height: 100vh;
-            color: var(--negro);
             padding: 20px;
         }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-
+        .container { max-width: 1400px; margin: 0 auto; }
         .card {
             background: var(--blanco);
             border-radius: 10px;
             padding: 25px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             margin-bottom: 20px;
             border: 2px solid var(--marron);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
-
-        /* ===== LOGIN ===== */
-        .login-container {
-            max-width: 450px;
-            margin: 50px auto;
-        }
-
+        .login-container { max-width: 450px; margin: 50px auto; }
         .login-card {
             background: var(--blanco);
             border-radius: 15px;
             padding: 40px;
             border: 3px solid var(--marron);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
         }
-
-        .login-header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .login-header h1 {
-            font-size: 2rem;
-            margin-bottom: 10px;
-            color: var(--marron);
-        }
-
-        /* ===== FORMULARIOS ===== */
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-            color: var(--marron);
-        }
-
+        .login-header { text-align: center; margin-bottom: 30px; }
+        .login-header h1 { color: var(--marron); font-size: 2rem; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 500; color: var(--marron); }
         .form-control {
             width: 100%;
             padding: 12px;
             border: 2px solid var(--amarillo-oscuro);
             border-radius: 8px;
             font-size: 1rem;
-            transition: all 0.3s;
         }
-
-        .form-control:focus {
-            outline: none;
-            border-color: var(--marron);
-            box-shadow: 0 0 0 3px rgba(139, 69, 19, 0.1);
-        }
-
-        /* Contenedor para input con botón de ver contraseña */
-        .password-wrapper {
-            position: relative;
-            display: flex;
-            align-items: center;
-        }
-
-        .password-wrapper input {
-            flex: 1;
-            padding-right: 50px;
-        }
-
+        .form-control:focus { outline: none; border-color: var(--marron); }
+        .password-wrapper { position: relative; display: flex; align-items: center; }
+        .password-wrapper input { flex: 1; padding-right: 50px; }
         .toggle-password {
             position: absolute;
             right: 12px;
@@ -117,8 +59,6 @@
             cursor: pointer;
             color: var(--marron);
         }
-
-        /* ===== BOTONES ===== */
         .btn {
             display: inline-block;
             padding: 12px 24px;
@@ -129,49 +69,19 @@
             cursor: pointer;
             transition: all 0.3s;
         }
-
-        .btn-primary {
-            background: var(--marron);
-            color: var(--blanco);
-            width: 100%;
-        }
-
-        .btn-primary:hover {
-            background: var(--amarillo);
-            color: var(--marron);
-        }
-
-        .btn-success {
-            background: var(--marron);
-            color: var(--blanco);
-        }
-
-        .btn-danger {
-            background: var(--negro);
-            color: var(--blanco);
-        }
-
-        /* ===== BARRA DE NAVEGACIÓN ===== */
+        .btn-primary { background: var(--marron); color: var(--blanco); width: 100%; }
+        .btn-primary:hover { background: var(--amarillo); color: var(--marron); }
+        .btn-success { background: var(--marron); color: var(--blanco); }
+        .btn-danger { background: var(--negro); color: var(--blanco); }
         .nav-bar {
             background: var(--marron);
-            color: var(--blanco);
             padding: 15px 0;
             margin-bottom: 30px;
             border-radius: 10px;
             border: 2px solid var(--amarillo);
         }
-
-        .nav-bar .container {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .nav-links {
-            display: flex;
-            gap: 20px;
-        }
-
+        .nav-bar .container { display: flex; justify-content: space-between; align-items: center; }
+        .nav-links { display: flex; gap: 20px; }
         .nav-links a {
             color: var(--blanco);
             text-decoration: none;
@@ -179,76 +89,19 @@
             border-radius: 5px;
             cursor: pointer;
         }
-
-        .nav-links a:hover {
-            background: var(--amarillo);
-            color: var(--marron);
-        }
-
-        /* ===== TARJETAS DE ESTADÍSTICAS ===== */
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-
-        .stat-card {
-            background: var(--blanco);
-            border: 2px solid var(--marron);
-            border-radius: 10px;
-            padding: 20px;
-        }
-
-        .stat-number {
-            font-size: 2rem;
-            font-weight: bold;
-            color: var(--negro);
-        }
-
-        /* ===== TABLAS ===== */
-        .table-responsive {
-            overflow-x: auto;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            background: var(--blanco);
-            border: 2px solid var(--marron);
-        }
-
-        th {
-            background: var(--marron);
-            color: var(--blanco);
-            padding: 12px;
-            text-align: left;
-        }
-
-        td {
-            padding: 12px;
-            border-bottom: 1px solid var(--amarillo);
-        }
-
-        /* ===== BADGES ===== */
+        .nav-links a:hover { background: var(--amarillo); color: var(--marron); }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 20px; }
+        .stat-card { background: var(--blanco); border: 2px solid var(--marron); border-radius: 10px; padding: 20px; }
+        .stat-number { font-size: 2rem; font-weight: bold; color: var(--negro); }
+        .table-responsive { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; background: var(--blanco); border: 2px solid var(--marron); }
+        th { background: var(--marron); color: var(--blanco); padding: 12px; text-align: left; }
+        td { padding: 12px; border-bottom: 1px solid var(--amarillo); }
         .badge-success { background: #10b981; color: white; padding: 4px 8px; border-radius: 4px; }
         .badge-warning { background: var(--amarillo); color: var(--marron); padding: 4px 8px; border-radius: 4px; }
         .badge-danger { background: #ef4444; color: white; padding: 4px 8px; border-radius: 4px; }
-
-        /* ===== FILTROS ===== */
-        .filters {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-
-        .filter-group {
-            flex: 1;
-            min-width: 200px;
-        }
-
-        /* ===== UTILIDADES ===== */
+        .filters { display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; }
+        .filter-group { flex: 1; min-width: 200px; }
         .hidden { display: none; }
         .text-center { text-align: center; }
         .text-right { text-align: right; }
@@ -260,38 +113,28 @@
 </head>
 <body>
     <div class="container" id="app">
-        <!-- ===== PANTALLA DE LOGIN ===== -->
+        <!-- PANTALLA DE LOGIN -->
         <div id="login-screen" class="login-container">
             <div class="login-header">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/55/Emblem_of_the_Scouts_de_Argentina.svg/200px-Emblem_of_the_Scouts_de_Argentina.svg.png" 
-                     style="width: 100px; margin-bottom: 15px;">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/55/Emblem_of_the_Scouts_de_Argentina.svg/200px-Emblem_of_the_Scouts_de_Argentina.svg.png" style="width: 100px; margin-bottom: 15px;">
                 <h1>Grupo Scout<br>San José Obrero N°466</h1>
                 <p>Sistema de Gestión Contable</p>
             </div>
             <div class="login-card">
                 <h2 class="text-center mb-20">Acceso al Sistema</h2>
                 <div id="login-error" class="alert-error hidden"></div>
-                <form id="login-form" onsubmit="return login(event)">
-                    <div class="form-group">
-                        <label>📧 Usuario (Email)</label>
-                        <input type="email" id="login-email" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <label>🔒 Contraseña</label>
-                        <div class="password-wrapper">
-                            <input type="password" id="login-password" class="form-control" required>
-                            <button type="button" class="toggle-password" onclick="togglePassword('login-password', this)">👁️</button>
-                        </div>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Ingresar</button>
-                </form>
+                <div id="google-login" class="text-center">
+                    <button class="btn btn-primary" onclick="loginWithGoogle()">
+                        <img src="https://www.google.com/favicon.ico" style="width: 20px; vertical-align: middle;"> Continuar con Google
+                    </button>
+                </div>
                 <div class="text-center mt-20" style="font-size: 0.85rem;">
-                    <p>Accesos: <strong>Admin • Tesorería • Jefatura</strong></p>
+                    <p>Solo usuarios autorizados</p>
                 </div>
             </div>
         </div>
 
-        <!-- ===== DASHBOARD ===== -->
+        <!-- DASHBOARD -->
         <div id="dashboard-screen" class="hidden">
             <div class="nav-bar">
                 <div class="container">
@@ -314,7 +157,7 @@
                         <div id="fecha-actual"></div>
                     </div>
                     <div class="grid">
-                        <div class="stat-card"><h3>SALDO TOTAL</h3><div class="stat-number">$ 5.276.798</div></div>
+                        <div class="stat-card"><h3>SALDO TOTAL</h3><div class="stat-number" id="saldo-total">$ 5.276.798</div></div>
                         <div class="stat-card"><h3>MERCADO PAGO</h3><div class="stat-number">$ 4.076.348</div></div>
                         <div class="stat-card"><h3>EFECTIVO</h3><div class="stat-number">$ 1.200.450</div></div>
                     </div>
@@ -419,80 +262,95 @@
     </div>
 
     <script>
-        const CONFIG = {
-            apiKey: 'AIzaSyDktlihiPds7AFkLSmrjV-Z0tauWCdqC7o',
-            spreadsheetId: '1-1ADHfkdnuWmPy4Fnuxg9ULqm5xGb1pO-crgqWukFi0',
-            driveFolder: '14wcPHlhFWG8oM9MBK9ad4AwuJDwR7yey'
-        };
+        // CONFIGURACIÓN
+        const CLIENT_ID = '616578436911-bel2eqgcvtc0j6hldhtogis5av7vvsu3.apps.googleusercontent.com';
+        const API_KEY = 'AIzaSyDktlihiPds7AFkLSmrjV-Z0tauWCdqC7o';
+        const SPREADSHEET_ID = '1-1ADHfkdnuWmPy4Fnuxg9ULqm5xGb1pO-crgqWukFi0';
+        const DRIVE_FOLDER_ID = '14wcPHlhFWG8oM9MBK9ad4AwuJDwR7yey';
+        const REDIRECT_URI = window.location.origin + window.location.pathname;
 
+        let accessToken = null;
         let currentUser = null;
-        let currentUserRole = null;
-        let usuariosData = [];
 
-        function togglePassword(inputId, btn) {
-            const input = document.getElementById(inputId);
-            if (input.type === 'password') {
-                input.type = 'text';
-                btn.textContent = '🙈';
-            } else {
-                input.type = 'password';
-                btn.textContent = '👁️';
+        // ========== AUTENTICACIÓN OAuth ==========
+        function loginWithGoogle() {
+            const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+                `client_id=${CLIENT_ID}&` +
+                `redirect_uri=${encodeURIComponent(REDIRECT_URI)}&` +
+                `response_type=token&` +
+                `scope=email%20profile%20https://www.googleapis.com/auth/spreadsheets%20https://www.googleapis.com/auth/drive.file&` +
+                `state=scout-login`;
+            window.location.href = authUrl;
+        }
+
+        function handleAuthRedirect() {
+            if (window.location.hash) {
+                const params = new URLSearchParams(window.location.hash.substring(1));
+                if (params.has('access_token')) {
+                    accessToken = params.get('access_token');
+                    // Obtener info del usuario
+                    fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                        headers: { 'Authorization': `Bearer ${accessToken}` }
+                    })
+                    .then(res => res.json())
+                    .then(userInfo => {
+                        currentUser = userInfo.email;
+                        sessionStorage.setItem('access_token', accessToken);
+                        sessionStorage.setItem('user_email', currentUser);
+                        window.location.hash = '';
+                        document.getElementById('login-screen').classList.add('hidden');
+                        document.getElementById('dashboard-screen').classList.remove('hidden');
+                        document.getElementById('fecha-actual').textContent = new Date().toLocaleDateString('es-AR');
+                        cargarBeneficiarios();
+                        cargarSaldos();
+                    })
+                    .catch(err => console.error('Error obteniendo usuario:', err));
+                }
             }
         }
 
-        async function cargarUsuarios() {
-            try {
-                const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.spreadsheetId}/values/USUARIOS!A:D?key=${CONFIG.apiKey}`;
-                const res = await fetch(url);
-                const data = await res.json();
-                if (data.values?.length > 1) {
-                    usuariosData = data.values.slice(1).map(row => ({
-                        email: row[0]?.toLowerCase().trim() || '',
-                        rol: row[1] || 'VISUALIZACION',
-                        password: row[2] || '',
-                        activo: row[3] === 'SÍ'
-                    }));
-                }
-                return true;
-            } catch (e) { console.error(e); return false; }
+        function logout() {
+            if (confirm('¿Cerrar sesión?')) {
+                accessToken = null;
+                sessionStorage.clear();
+                window.location.hash = '';
+                document.getElementById('dashboard-screen').classList.add('hidden');
+                document.getElementById('login-screen').classList.remove('hidden');
+            }
         }
-
-        async function login(e) {
-            e.preventDefault();
-            const email = document.getElementById('login-email').value.toLowerCase().trim();
-            const pwd = document.getElementById('login-password').value;
-            const errorDiv = document.getElementById('login-error');
-            if (usuariosData.length === 0) await cargarUsuarios();
-            const user = usuariosData.find(u => u.email === email);
-            if (!user) { errorDiv.textContent = '❌ Usuario no encontrado'; errorDiv.classList.remove('hidden'); return false; }
-            if (!user.activo) { errorDiv.textContent = '❌ Usuario desactivado. Contactá al administrador.'; errorDiv.classList.remove('hidden'); return false; }
-            if (user.password !== pwd) { errorDiv.textContent = '❌ Contraseña incorrecta'; errorDiv.classList.remove('hidden'); return false; }
-            currentUser = user.email; currentUserRole = user.rol;
-            sessionStorage.setItem('scout_user', JSON.stringify({ email: currentUser, rol: currentUserRole }));
-            document.getElementById('login-screen').classList.add('hidden');
-            document.getElementById('dashboard-screen').classList.remove('hidden');
-            document.getElementById('fecha-actual').textContent = new Date().toLocaleDateString('es-AR');
-            cargarBeneficiarios();
-            return false;
-        }
-
-        function logout() { if(confirm('¿Cerrar sesión?')) { sessionStorage.clear(); location.reload(); } }
 
         function showSection(s) {
-            ['dashboard','ingresos','egresos','deudores','informes'].forEach(sec => document.getElementById(`${sec}-section`).classList.add('hidden'));
+            ['dashboard','ingresos','egresos','deudores','informes'].forEach(sec => 
+                document.getElementById(`${sec}-section`).classList.add('hidden'));
             document.getElementById(`${s}-section`).classList.remove('hidden');
-            if(s === 'deudores') cargarDeudores();
+            if (s === 'deudores') cargarDeudores();
+        }
+
+        // ========== LECTURA DE DATOS ==========
+        async function cargarSaldos() {
+            if (!accessToken) return;
+            try {
+                const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/CONFIG!A:B`, {
+                    headers: { 'Authorization': `Bearer ${accessToken}` }
+                });
+                const data = await res.json();
+                console.log('Config cargada:', data);
+            } catch(e) { console.error(e); }
         }
 
         async function cargarBeneficiarios() {
+            if (!accessToken) return;
             try {
-                const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.spreadsheetId}/values/BENEFICIARIOS!A:G?key=${CONFIG.apiKey}`;
-                const res = await fetch(url); const data = await res.json();
+                const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/BENEFICIARIOS!A:G`, {
+                    headers: { 'Authorization': `Bearer ${accessToken}` }
+                });
+                const data = await res.json();
                 const select = document.getElementById('ingreso-beneficiario');
                 select.innerHTML = '<option value="">Seleccionar</option>';
                 if (data.values?.length > 1) {
                     data.values.slice(1).forEach(row => {
-                        if (row[0] && row[6] !== 'NO') select.innerHTML += `<option value="${row[0]}">${row[1]}, ${row[2]} (${row[3]})</option>`;
+                        if (row[0] && row[6] !== 'NO')
+                            select.innerHTML += `<option value="${row[0]}">${row[1]}, ${row[2]} (${row[3]})</option>`;
                     });
                 }
                 cargarTablaDeudores(data.values);
@@ -507,7 +365,7 @@
                 return;
             }
             beneficiarios.slice(1, 11).forEach(row => {
-                if(!row[1]) return;
+                if (!row[1]) return;
                 const estado1 = Math.random()>0.6 ? 'Pagado' : (Math.random()>0.5 ? 'Parcial' : 'Pendiente');
                 const estado2 = Math.random()>0.6 ? 'Pagado' : (Math.random()>0.5 ? 'Parcial' : 'Pendiente');
                 const badge1 = estado1==='Pagado' ? '<span class="badge-success">Pagado</span>' : (estado1==='Parcial' ? '<span class="badge-warning">Parcial</span>' : '<span class="badge-danger">Pendiente</span>');
@@ -519,15 +377,15 @@
 
         function cargarDeudores() { cargarBeneficiarios(); }
         function toggleCamposCuota() { document.getElementById('campos-cuota').classList.toggle('hidden', document.getElementById('ingreso-rubro').value !== 'Cuota'); }
-        function filtrarDeudores() { /* filtro básico */ }
+        function filtrarDeudores() { /* implementar filtro */ }
         function descargarListado() { alert('Descarga de listado (implementar exportación)'); }
         function generarLibroCaja() { alert('Generando libro de caja...'); }
         function generarEjecucion() { alert('Generando ejecución...'); }
 
-        // ===== GUARDAR INGRESO (con escritura real) =====
+        // ========== GUARDAR INGRESO ==========
         async function guardarIngreso(event) {
             event.preventDefault();
-            if (!currentUser) { alert('Iniciá sesión'); return false; }
+            if (!accessToken) { alert('No hay sesión activa'); return false; }
             const fecha = document.getElementById('ingreso-fecha').value;
             const rubro = document.getElementById('ingreso-rubro').value;
             const monto = document.getElementById('ingreso-monto').value;
@@ -538,11 +396,14 @@
             if (!fecha || !rubro || !monto) { alert('Completá los campos obligatorios'); return false; }
             try {
                 const values = [[fecha, rubro, beneficiario || '', cuota, monto, comprobante, detalle, currentUser, new Date().toISOString()]];
-                const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.spreadsheetId}/values/INGRESOS_unitario:append?valueInputOption=USER_ENTERED&key=${CONFIG.apiKey}`;
-                const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ values }) });
+                const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/INGRESOS_unitario:append?valueInputOption=USER_ENTERED`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ values })
+                });
                 if (res.ok) {
                     const msg = document.getElementById('ingreso-mensaje');
-                    msg.textContent = '✅ Ingreso guardado correctamente en Google Sheets';
+                    msg.textContent = '✅ Ingreso guardado correctamente';
                     msg.classList.remove('hidden');
                     setTimeout(() => msg.classList.add('hidden'), 3000);
                     document.getElementById('form-ingreso').reset();
@@ -552,10 +413,10 @@
             return false;
         }
 
-        // ===== GUARDAR EGRESO con subida de archivo a Drive =====
+        // ========== GUARDAR EGRESO CON SUBIDA A DRIVE ==========
         async function guardarEgreso(event) {
             event.preventDefault();
-            if (!currentUser) { alert('Iniciá sesión'); return false; }
+            if (!accessToken) { alert('No hay sesión activa'); return false; }
             const fecha = document.getElementById('egreso-fecha').value;
             const rubro = document.getElementById('egreso-rubro').value;
             const detalle = document.getElementById('egreso-detalle').value;
@@ -563,28 +424,35 @@
             const comprobante = document.getElementById('egreso-comprobante').value;
             const archivo = document.getElementById('egreso-archivo').files[0];
             let linkArchivo = '';
+
             if (archivo) {
                 try {
-                    const formData = new FormData();
                     const fileName = `${fecha}_${rubro}_${comprobante || 'sincomp'}.${archivo.name.split('.').pop()}`;
-                    const metadata = new Blob([JSON.stringify({ name: fileName, parents: [CONFIG.driveFolder] })], { type: 'application/json' });
-                    formData.append('metadata', metadata);
+                    const metadata = { name: fileName, parents: [DRIVE_FOLDER_ID] };
+                    const formData = new FormData();
+                    formData.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
                     formData.append('file', archivo);
                     const uploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=webViewLink', {
                         method: 'POST',
-                        headers: { 'Authorization': `Bearer ${sessionStorage.getItem('drive_token') || ''}` }, // token real se requiere OAuth2
+                        headers: { 'Authorization': `Bearer ${accessToken}` },
                         body: formData
                     });
                     if (uploadRes.ok) {
                         const data = await uploadRes.json();
                         linkArchivo = data.webViewLink || 'Subido sin enlace';
-                    } else console.warn('Subida fallida (requiere token Drive)');
-                } catch(e) { console.warn('No se pudo subir archivo', e); }
+                    } else {
+                        console.warn('Subida fallida:', await uploadRes.text());
+                    }
+                } catch(e) { console.error('Error al subir archivo:', e); }
             }
+
             try {
                 const values = [[fecha, rubro, detalle, comprobante, monto, linkArchivo, currentUser, new Date().toISOString()]];
-                const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.spreadsheetId}/values/EGRESOS:append?valueInputOption=USER_ENTERED&key=${CONFIG.apiKey}`;
-                const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ values }) });
+                const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/EGRESOS:append?valueInputOption=USER_ENTERED`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ values })
+                });
                 if (res.ok) {
                     const msg = document.getElementById('egreso-mensaje');
                     msg.textContent = '✅ Egreso guardado correctamente' + (linkArchivo ? ' (archivo adjunto)' : '');
@@ -596,16 +464,19 @@
             return false;
         }
 
-        window.onload = async () => {
-            await cargarUsuarios();
-            const saved = sessionStorage.getItem('scout_user');
-            if (saved) {
-                const user = JSON.parse(saved);
-                currentUser = user.email; currentUserRole = user.rol;
+        // ========== INICIALIZACIÓN ==========
+        window.onload = () => {
+            const savedToken = sessionStorage.getItem('access_token');
+            if (savedToken) {
+                accessToken = savedToken;
+                currentUser = sessionStorage.getItem('user_email');
                 document.getElementById('login-screen').classList.add('hidden');
                 document.getElementById('dashboard-screen').classList.remove('hidden');
                 document.getElementById('fecha-actual').textContent = new Date().toLocaleDateString('es-AR');
                 cargarBeneficiarios();
+                cargarSaldos();
+            } else {
+                handleAuthRedirect();
             }
         };
     </script>
