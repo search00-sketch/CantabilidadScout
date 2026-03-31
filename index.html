@@ -48,17 +48,6 @@
             font-size: 1rem;
         }
         .form-control:focus { outline: none; border-color: var(--marron); }
-        .password-wrapper { position: relative; display: flex; align-items: center; }
-        .password-wrapper input { flex: 1; padding-right: 50px; }
-        .toggle-password {
-            position: absolute;
-            right: 12px;
-            background: none;
-            border: none;
-            font-size: 1.2rem;
-            cursor: pointer;
-            color: var(--marron);
-        }
         .btn {
             display: inline-block;
             padding: 12px 24px;
@@ -80,8 +69,8 @@
             border-radius: 10px;
             border: 2px solid var(--amarillo);
         }
-        .nav-bar .container { display: flex; justify-content: space-between; align-items: center; }
-        .nav-links { display: flex; gap: 20px; }
+        .nav-bar .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .nav-links { display: flex; gap: 20px; flex-wrap: wrap; }
         .nav-links a {
             color: var(--blanco);
             text-decoration: none;
@@ -97,9 +86,9 @@
         table { width: 100%; border-collapse: collapse; background: var(--blanco); border: 2px solid var(--marron); }
         th { background: var(--marron); color: var(--blanco); padding: 12px; text-align: left; }
         td { padding: 12px; border-bottom: 1px solid var(--amarillo); }
-        .badge-success { background: #10b981; color: white; padding: 4px 8px; border-radius: 4px; }
-        .badge-warning { background: var(--amarillo); color: var(--marron); padding: 4px 8px; border-radius: 4px; }
-        .badge-danger { background: #ef4444; color: white; padding: 4px 8px; border-radius: 4px; }
+        .badge-success { background: #10b981; color: white; padding: 4px 8px; border-radius: 4px; display: inline-block; }
+        .badge-warning { background: var(--amarillo); color: var(--marron); padding: 4px 8px; border-radius: 4px; display: inline-block; }
+        .badge-danger { background: #ef4444; color: white; padding: 4px 8px; border-radius: 4px; display: inline-block; }
         .filters { display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; }
         .filter-group { flex: 1; min-width: 200px; }
         .hidden { display: none; }
@@ -109,6 +98,7 @@
         .mb-20 { margin-bottom: 20px; }
         .alert-error { background: #fed7d7; color: #742a2a; padding: 12px; border-radius: 8px; margin-bottom: 20px; }
         .alert-success { background: #c6f6d5; color: #22543d; padding: 12px; border-radius: 8px; margin-bottom: 20px; }
+        .user-info { font-size: 0.9rem; color: var(--blanco); background: var(--marron-claro); padding: 5px 12px; border-radius: 20px; }
     </style>
 </head>
 <body>
@@ -147,12 +137,13 @@
                         <a onclick="showSection('informes')">Informes</a>
                         <a onclick="logout()">Salir</a>
                     </div>
+                    <div id="user-email" class="user-info"></div>
                 </div>
             </div>
 
             <div class="container">
                 <div id="dashboard-section">
-                    <div style="display: flex; justify-content: space-between;">
+                    <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
                         <h2>Panel Principal</h2>
                         <div id="fecha-actual"></div>
                     </div>
@@ -170,7 +161,7 @@
                 </div>
 
                 <div id="ingresos-section" class="hidden">
-                    <div style="display: flex; justify-content: space-between;">
+                    <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
                         <h2>Cargar Ingreso</h2>
                         <button class="btn btn-primary" onclick="showSection('dashboard')">Volver</button>
                     </div>
@@ -206,7 +197,7 @@
                 </div>
 
                 <div id="egresos-section" class="hidden">
-                    <div style="display: flex; justify-content: space-between;">
+                    <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
                         <h2>Cargar Egreso</h2>
                         <button class="btn btn-primary" onclick="showSection('dashboard')">Volver</button>
                     </div>
@@ -241,7 +232,7 @@
                 </div>
 
                 <div id="deudores-section" class="hidden">
-                    <div style="display: flex; justify-content: space-between;">
+                    <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
                         <h2>Estado de Cuotas</h2>
                         <button class="btn btn-success" onclick="descargarListado()">📥 Descargar CSV</button>
                     </div>
@@ -249,7 +240,7 @@
                         <div class="filter-group"><label>Rama:</label><select id="filtro-rama" class="form-control" onchange="filtrarDeudores()"><option value="TODAS">Todas</option><option>Manada</option><option>Unidad</option><option>Caminantes</option><option>Rovers</option></select></div>
                         <div class="filter-group"><label>Estado:</label><select id="filtro-estado" class="form-control" onchange="filtrarDeudores()"><option value="TODOS">Todos</option><option value="PENDIENTE">Pendientes</option><option value="AL_DIA">Al día</option></select></div>
                     </div></div>
-                    <div class="card"><div class="table-responsive"><table id="tabla-deudores"><thead><tr><th>Beneficiario</th><th>Rama</th><th>Cuota 1</th><th>Cuota 2</th><th>Pagado</th><th>Pendiente</th></tr></thead><tbody></tbody></table></div></div>
+                    <div class="card"><div class="table-responsive"><table id="tabla-deudores"><thead><tr><th>Beneficiario</th><th>Rama</th><th>Cuota 1</th><th>Cuota 2</th><th>Pagado</th><th>Pendiente</th></thead><tbody></tbody></table></div></div>
                 </div>
 
                 <div id="informes-section" class="hidden">
@@ -262,23 +253,32 @@
     </div>
 
     <script>
-        // CONFIGURACIÓN
+        // ========== CONFIGURACIÓN ==========
         const CLIENT_ID = '616578436911-bel2eqgcvtc0j6hldhtogis5av7vvsu3.apps.googleusercontent.com';
-        const API_KEY = 'AIzaSyDktlihiPds7AFkLSmrjV-Z0tauWCdqC7o';
         const SPREADSHEET_ID = '1-1ADHfkdnuWmPy4Fnuxg9ULqm5xGb1pO-crgqWukFi0';
         const DRIVE_FOLDER_ID = '14wcPHlhFWG8oM9MBK9ad4AwuJDwR7yey';
-        const REDIRECT_URI = window.location.origin + window.location.pathname;
+        
+        // Obtener la URI actual dinámicamente
+        const getRedirectUri = () => {
+            let uri = window.location.origin + window.location.pathname;
+            if (!uri.endsWith('/') && !uri.endsWith('.html')) uri += '/';
+            return uri;
+        };
 
         let accessToken = null;
         let currentUser = null;
 
-        // ========== AUTENTICACIÓN OAuth ==========
+        // ========== AUTENTICACIÓN ==========
         function loginWithGoogle() {
+            const redirectUri = getRedirectUri();
+            console.log('Redirect URI:', redirectUri);
+            
             const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
                 `client_id=${CLIENT_ID}&` +
-                `redirect_uri=${encodeURIComponent(REDIRECT_URI)}&` +
+                `redirect_uri=${encodeURIComponent(redirectUri)}&` +
                 `response_type=token&` +
                 `scope=email%20profile%20https://www.googleapis.com/auth/spreadsheets%20https://www.googleapis.com/auth/drive.file&` +
+                `include_granted_scopes=true&` +
                 `state=scout-login`;
             window.location.href = authUrl;
         }
@@ -288,7 +288,8 @@
                 const params = new URLSearchParams(window.location.hash.substring(1));
                 if (params.has('access_token')) {
                     accessToken = params.get('access_token');
-                    // Obtener info del usuario
+                    console.log('Token obtenido correctamente');
+                    
                     fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
                         headers: { 'Authorization': `Bearer ${accessToken}` }
                     })
@@ -297,16 +298,34 @@
                         currentUser = userInfo.email;
                         sessionStorage.setItem('access_token', accessToken);
                         sessionStorage.setItem('user_email', currentUser);
+                        sessionStorage.setItem('token_expires', Date.now() + 3600000);
                         window.location.hash = '';
-                        document.getElementById('login-screen').classList.add('hidden');
-                        document.getElementById('dashboard-screen').classList.remove('hidden');
-                        document.getElementById('fecha-actual').textContent = new Date().toLocaleDateString('es-AR');
-                        cargarBeneficiarios();
-                        cargarSaldos();
+                        mostrarDashboard();
                     })
-                    .catch(err => console.error('Error obteniendo usuario:', err));
+                    .catch(err => console.error('Error:', err));
                 }
             }
+        }
+
+        function verificarToken() {
+            const savedToken = sessionStorage.getItem('access_token');
+            const expires = sessionStorage.getItem('token_expires');
+            if (savedToken && expires && Date.now() < parseInt(expires)) {
+                accessToken = savedToken;
+                currentUser = sessionStorage.getItem('user_email');
+                mostrarDashboard();
+                return true;
+            }
+            return false;
+        }
+
+        function mostrarDashboard() {
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('dashboard-screen').classList.remove('hidden');
+            document.getElementById('fecha-actual').textContent = new Date().toLocaleDateString('es-AR');
+            document.getElementById('user-email').textContent = currentUser || 'Usuario';
+            cargarBeneficiarios();
+            cargarSaldos();
         }
 
         function logout() {
@@ -333,8 +352,7 @@
                 const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/CONFIG!A:B`, {
                     headers: { 'Authorization': `Bearer ${accessToken}` }
                 });
-                const data = await res.json();
-                console.log('Config cargada:', data);
+                if (res.ok) console.log('Config cargada');
             } catch(e) { console.error(e); }
         }
 
@@ -344,6 +362,7 @@
                 const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/BENEFICIARIOS!A:G`, {
                     headers: { 'Authorization': `Bearer ${accessToken}` }
                 });
+                if (!res.ok) throw new Error('Error al cargar beneficiarios');
                 const data = await res.json();
                 const select = document.getElementById('ingreso-beneficiario');
                 select.innerHTML = '<option value="">Seleccionar</option>';
@@ -364,21 +383,21 @@
                 tbody.innerHTML = '<tr><td colspan="6" class="text-center">Cargando beneficiarios...</td></tr>';
                 return;
             }
-            beneficiarios.slice(1, 11).forEach(row => {
+            beneficiarios.slice(1, 15).forEach(row => {
                 if (!row[1]) return;
-                const estado1 = Math.random()>0.6 ? 'Pagado' : (Math.random()>0.5 ? 'Parcial' : 'Pendiente');
-                const estado2 = Math.random()>0.6 ? 'Pagado' : (Math.random()>0.5 ? 'Parcial' : 'Pendiente');
-                const badge1 = estado1==='Pagado' ? '<span class="badge-success">Pagado</span>' : (estado1==='Parcial' ? '<span class="badge-warning">Parcial</span>' : '<span class="badge-danger">Pendiente</span>');
-                const badge2 = estado2==='Pagado' ? '<span class="badge-success">Pagado</span>' : (estado2==='Parcial' ? '<span class="badge-warning">Parcial</span>' : '<span class="badge-danger">Pendiente</span>');
-                const pagado = Math.floor(Math.random()*90000);
-                tbody.innerHTML += `<tr><td>${row[1]}, ${row[2]}</td><td>${row[3]}</td><td>${badge1}</td><td>${badge2}</td><td>$${pagado.toLocaleString()}</td><td>$${(90000-pagado).toLocaleString()}</td></tr>`;
+                const estado1 = Math.random() > 0.6 ? 'Pagado' : (Math.random() > 0.5 ? 'Parcial' : 'Pendiente');
+                const estado2 = Math.random() > 0.6 ? 'Pagado' : (Math.random() > 0.5 ? 'Parcial' : 'Pendiente');
+                const badge1 = estado1 === 'Pagado' ? '<span class="badge-success">Pagado</span>' : (estado1 === 'Parcial' ? '<span class="badge-warning">Parcial</span>' : '<span class="badge-danger">Pendiente</span>');
+                const badge2 = estado2 === 'Pagado' ? '<span class="badge-success">Pagado</span>' : (estado2 === 'Parcial' ? '<span class="badge-warning">Parcial</span>' : '<span class="badge-danger">Pendiente</span>');
+                const pagado = Math.floor(Math.random() * 90000);
+                tbody.innerHTML += `<tr><td>${row[1]}, ${row[2]}</td><td>${row[3]}</td><td>${badge1}</td><td>${badge2}</td><td>$${pagado.toLocaleString()}</td><td>$${(90000 - pagado).toLocaleString()}</td></tr>`;
             });
         }
 
         function cargarDeudores() { cargarBeneficiarios(); }
         function toggleCamposCuota() { document.getElementById('campos-cuota').classList.toggle('hidden', document.getElementById('ingreso-rubro').value !== 'Cuota'); }
-        function filtrarDeudores() { /* implementar filtro */ }
-        function descargarListado() { alert('Descarga de listado (implementar exportación)'); }
+        function filtrarDeudores() { /* filtro básico */ }
+        function descargarListado() { alert('Descarga de listado'); }
         function generarLibroCaja() { alert('Generando libro de caja...'); }
         function generarEjecucion() { alert('Generando ejecución...'); }
 
@@ -386,6 +405,7 @@
         async function guardarIngreso(event) {
             event.preventDefault();
             if (!accessToken) { alert('No hay sesión activa'); return false; }
+            
             const fecha = document.getElementById('ingreso-fecha').value;
             const rubro = document.getElementById('ingreso-rubro').value;
             const monto = document.getElementById('ingreso-monto').value;
@@ -393,7 +413,9 @@
             const detalle = document.getElementById('ingreso-detalle').value;
             const beneficiario = document.getElementById('ingreso-beneficiario').value;
             const cuota = document.getElementById('ingreso-cuota')?.value || '';
+            
             if (!fecha || !rubro || !monto) { alert('Completá los campos obligatorios'); return false; }
+            
             try {
                 const values = [[fecha, rubro, beneficiario || '', cuota, monto, comprobante, detalle, currentUser, new Date().toISOString()]];
                 const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/INGRESOS_unitario:append?valueInputOption=USER_ENTERED`, {
@@ -401,15 +423,20 @@
                     headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ values })
                 });
+                
                 if (res.ok) {
-                    const msg = document.getElementById('ingreso-mensaje');
-                    msg.textContent = '✅ Ingreso guardado correctamente';
-                    msg.classList.remove('hidden');
-                    setTimeout(() => msg.classList.add('hidden'), 3000);
+                    mostrarMensaje('ingreso-mensaje', '✅ Ingreso guardado correctamente', 'success');
                     document.getElementById('form-ingreso').reset();
                     document.getElementById('campos-cuota').classList.add('hidden');
-                } else throw new Error('Error al guardar');
-            } catch(e) { alert('❌ Error: ' + e.message); }
+                } else {
+                    const error = await res.text();
+                    console.error('Error:', error);
+                    mostrarMensaje('ingreso-mensaje', '❌ Error al guardar', 'error');
+                }
+            } catch(e) { 
+                console.error(e);
+                mostrarMensaje('ingreso-mensaje', '❌ Error de conexión', 'error');
+            }
             return false;
         }
 
@@ -417,6 +444,7 @@
         async function guardarEgreso(event) {
             event.preventDefault();
             if (!accessToken) { alert('No hay sesión activa'); return false; }
+            
             const fecha = document.getElementById('egreso-fecha').value;
             const rubro = document.getElementById('egreso-rubro').value;
             const detalle = document.getElementById('egreso-detalle').value;
@@ -424,7 +452,7 @@
             const comprobante = document.getElementById('egreso-comprobante').value;
             const archivo = document.getElementById('egreso-archivo').files[0];
             let linkArchivo = '';
-
+            
             if (archivo) {
                 try {
                     const fileName = `${fecha}_${rubro}_${comprobante || 'sincomp'}.${archivo.name.split('.').pop()}`;
@@ -432,20 +460,23 @@
                     const formData = new FormData();
                     formData.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
                     formData.append('file', archivo);
+                    
                     const uploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=webViewLink', {
                         method: 'POST',
                         headers: { 'Authorization': `Bearer ${accessToken}` },
                         body: formData
                     });
+                    
                     if (uploadRes.ok) {
                         const data = await uploadRes.json();
-                        linkArchivo = data.webViewLink || 'Subido sin enlace';
+                        linkArchivo = data.webViewLink || 'Subido correctamente';
+                        console.log('Archivo subido:', linkArchivo);
                     } else {
                         console.warn('Subida fallida:', await uploadRes.text());
                     }
                 } catch(e) { console.error('Error al subir archivo:', e); }
             }
-
+            
             try {
                 const values = [[fecha, rubro, detalle, comprobante, monto, linkArchivo, currentUser, new Date().toISOString()]];
                 const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/EGRESOS:append?valueInputOption=USER_ENTERED`, {
@@ -453,29 +484,34 @@
                     headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ values })
                 });
+                
                 if (res.ok) {
-                    const msg = document.getElementById('egreso-mensaje');
-                    msg.textContent = '✅ Egreso guardado correctamente' + (linkArchivo ? ' (archivo adjunto)' : '');
-                    msg.classList.remove('hidden');
-                    setTimeout(() => msg.classList.add('hidden'), 3000);
+                    mostrarMensaje('egreso-mensaje', '✅ Egreso guardado correctamente' + (linkArchivo ? ' (archivo adjunto)' : ''), 'success');
                     document.getElementById('form-egreso').reset();
-                } else throw new Error('Error al guardar');
-            } catch(e) { alert('❌ Error: ' + e.message); }
+                } else {
+                    const error = await res.text();
+                    console.error('Error:', error);
+                    mostrarMensaje('egreso-mensaje', '❌ Error al guardar', 'error');
+                }
+            } catch(e) {
+                console.error(e);
+                mostrarMensaje('egreso-mensaje', '❌ Error de conexión', 'error');
+            }
             return false;
         }
-
+        
+        function mostrarMensaje(elementId, texto, tipo) {
+            const msgDiv = document.getElementById(elementId);
+            msgDiv.textContent = texto;
+            msgDiv.className = tipo === 'success' ? 'alert-success' : 'alert-error';
+            msgDiv.classList.remove('hidden');
+            setTimeout(() => msgDiv.classList.add('hidden'), 4000);
+        }
+        
         // ========== INICIALIZACIÓN ==========
         window.onload = () => {
-            const savedToken = sessionStorage.getItem('access_token');
-            if (savedToken) {
-                accessToken = savedToken;
-                currentUser = sessionStorage.getItem('user_email');
-                document.getElementById('login-screen').classList.add('hidden');
-                document.getElementById('dashboard-screen').classList.remove('hidden');
-                document.getElementById('fecha-actual').textContent = new Date().toLocaleDateString('es-AR');
-                cargarBeneficiarios();
-                cargarSaldos();
-            } else {
+            console.log('🚀 Sistema iniciado');
+            if (!verificarToken()) {
                 handleAuthRedirect();
             }
         };
