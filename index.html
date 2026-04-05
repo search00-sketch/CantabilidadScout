@@ -100,9 +100,6 @@
         .alert-success { background: #c6f6d5; color: #22543d; padding: 12px; border-radius: 8px; margin-bottom: 20px; }
         .alert-warning { background: #feebc8; color: #744210; padding: 12px; border-radius: 8px; margin-bottom: 20px; }
         .user-info { font-size: 0.9rem; color: var(--blanco); background: #A0522D; padding: 5px 12px; border-radius: 20px; }
-        .password-wrapper { position: relative; display: flex; align-items: center; }
-        .password-wrapper input { flex: 1; padding-right: 50px; }
-        .toggle-password { position: absolute; right: 12px; background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--marron); }
     </style>
 </head>
 <body>
@@ -152,9 +149,21 @@
                         <div id="fecha-actual"></div>
                     </div>
                     <div class="grid">
-                        <div class="stat-card"><h3>SALDO TOTAL</h3><div class="stat-number" id="saldo-total">$ 5.276.798</div></div>
-                        <div class="stat-card"><h3>MERCADO PAGO</h3><div class="stat-number">$ 4.076.348</div></div>
-                        <div class="stat-card"><h3>EFECTIVO</h3><div class="stat-number">$ 1.200.450</div></div>
+                        <div class="stat-card">
+                            <h3>TOTAL ACTIVOS</h3>
+                            <div class="stat-number" id="saldo-total">$ 5.276.798</div>
+                            <small>Saldo inicial + Ingresos - Egresos</small>
+                        </div>
+                        <div class="stat-card">
+                            <h3>TOTAL INGRESOS</h3>
+                            <div class="stat-number" id="total-ingresos">$ 0</div>
+                            <small>Período actual</small>
+                        </div>
+                        <div class="stat-card">
+                            <h3>TOTAL EGRESOS</h3>
+                            <div class="stat-number" id="total-egresos">$ 0</div>
+                            <small>Período actual</small>
+                        </div>
                     </div>
                     <div class="grid" style="grid-template-columns: repeat(4,1fr);">
                         <div class="card text-center" onclick="showSection('ingresos')" style="cursor:pointer;"><h3 style="font-size:2rem;">💰</h3><p>Cargar Ingreso</p></div>
@@ -341,6 +350,7 @@
             document.getElementById('user-email').textContent = currentUser || 'Usuario';
             cargarBeneficiarios();
             cargarDeudores();
+            cargarSaldos();
         }
 
         function logout() {
@@ -358,11 +368,57 @@
                 document.getElementById(`${sec}-section`).classList.add('hidden'));
             document.getElementById(`${s}-section`).classList.remove('hidden');
             if (s === 'deudores') cargarDeudores();
+            if (s === 'dashboard') cargarSaldos();
+        }
+
+        // ========== CÁLCULO DE SALDOS ==========
+        async function cargarSaldos() {
+            if (!accessToken) return;
+            try {
+                // Leer CONFIG para saldo inicial
+                const configRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/CONFIG!A:B`, {
+                    headers: { 'Authorization': `Bearer ${accessToken}` }
+                });
+                const configData = await configRes.json();
+                let saldoInicial = 5276798.05; // valor por defecto
+                if (configData.values) {
+                    const totalRow = configData.values.find(row => row[0] === 'total_inicial');
+                    if (totalRow) saldoInicial = parseFloat(totalRow[1]) || 5276798.05;
+                }
+                
+                // Leer INGRESOS_unitario
+                const ingresosRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/INGRESOS_unitario!A:F?key=AIzaSyDktlihiPds7AFkLSmrjV-Z0tauWCdqC7o`);
+                const ingresosData = await ingresosRes.json();
+                let totalIngresos = 0;
+                if (ingresosData.values && ingresosData.values.length > 1) {
+                    ingresosData.values.slice(1).forEach(row => {
+                        const monto = parseFloat(row[4]) || 0;
+                        totalIngresos += monto;
+                    });
+                }
+                
+                // Leer EGRESOS
+                const egresosRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/EGRESOS!A:E?key=AIzaSyDktlihiPds7AFkLSmrjV-Z0tauWCdqC7o`);
+                const egresosData = await egresosRes.json();
+                let totalEgresos = 0;
+                if (egresosData.values && egresosData.values.length > 1) {
+                    egresosData.values.slice(1).forEach(row => {
+                        const monto = parseFloat(row[4]) || 0;
+                        totalEgresos += monto;
+                    });
+                }
+                
+                const saldoActual = saldoInicial + totalIngresos - totalEgresos;
+                
+                document.getElementById('saldo-total').textContent = `$ ${saldoActual.toLocaleString('es-AR')}`;
+                document.getElementById('total-ingresos').textContent = `$ ${totalIngresos.toLocaleString('es-AR')}`;
+                document.getElementById('total-egresos').textContent = `$ ${totalEgresos.toLocaleString('es-AR')}`;
+                
+            } catch(e) { console.error('Error cargando saldos:', e); }
         }
 
         // ========== LECTURA DE DATOS ==========
         async function cargarBeneficiarios() {
-            if (!accessToken) return;
             try {
                 const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/BENEFICIARIOS!A:E?key=AIzaSyDktlihiPds7AFkLSmrjV-Z0tauWCdqC7o`);
                 if (!res.ok) throw new Error('Error al cargar beneficiarios');
@@ -380,7 +436,6 @@
         }
 
         async function cargarDeudores() {
-            if (!accessToken) return;
             try {
                 const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/INGRESOS_unitario!A:F?key=AIzaSyDktlihiPds7AFkLSmrjV-Z0tauWCdqC7o`);
                 const data = await res.json();
@@ -503,6 +558,7 @@
             
             if (!fecha || !rubro || !monto) { alert('Completá los campos obligatorios'); return false; }
             
+            // Formato correcto para INGRESOS_unitario: Fecha, Detalle, ID_Beneficiario, Rubro, Monto, Comprobante
             const values = [[fecha, detalle, beneficiario || '', rubro === 'Cuota' ? cuota : rubro, monto, comprobante]];
             
             try {
@@ -517,6 +573,7 @@
                     document.getElementById('form-ingreso').reset();
                     document.getElementById('campos-cuota').classList.add('hidden');
                     cargarDeudores();
+                    cargarSaldos();
                 } else {
                     mostrarMensaje('ingreso-mensaje', '❌ Error al guardar', 'error');
                 }
@@ -539,6 +596,7 @@
             const archivo = document.getElementById('egreso-archivo').files[0];
             let linkArchivo = '';
             
+            // Subir archivo a Drive si existe
             if (archivo) {
                 try {
                     if (archivo.size > 10 * 1024 * 1024) {
@@ -562,13 +620,19 @@
                         const data = await uploadRes.json();
                         linkArchivo = data.webViewLink || `https://drive.google.com/file/d/${data.id}/view`;
                         console.log('✅ Archivo subido:', linkArchivo);
+                        mostrarMensaje('egreso-mensaje', '✅ Archivo subido correctamente', 'success');
                     } else {
-                        console.warn('Subida fallida');
+                        const errorText = await uploadRes.text();
+                        console.error('Error en Drive:', errorText);
                         mostrarMensaje('egreso-mensaje', '⚠️ El archivo no pudo subirse, pero el egreso se guardará', 'warning');
                     }
-                } catch(e) { console.error('Error al subir archivo:', e); }
+                } catch(e) { 
+                    console.error('Error al subir archivo:', e);
+                    mostrarMensaje('egreso-mensaje', '⚠️ Error al subir archivo, pero el egreso se guardará', 'warning');
+                }
             }
             
+            // Formato correcto para EGRESOS: Fecha, Rubro, Detalle, N° Comprobante, Monto, LinkFoto, Usuario, FechaHora
             const values = [[fecha, rubro, detalle, comprobante, monto, linkArchivo, currentUser, new Date().toISOString()]];
             
             try {
@@ -581,10 +645,14 @@
                 if (res.ok) {
                     mostrarMensaje('egreso-mensaje', '✅ Egreso guardado correctamente' + (linkArchivo ? ' (archivo adjunto)' : ''), 'success');
                     document.getElementById('form-egreso').reset();
+                    cargarSaldos();
                 } else {
+                    const error = await res.text();
+                    console.error('Error en Sheets:', error);
                     mostrarMensaje('egreso-mensaje', '❌ Error al guardar', 'error');
                 }
             } catch(e) {
+                console.error('Error:', e);
                 mostrarMensaje('egreso-mensaje', '❌ Error de conexión', 'error');
             }
             return false;
