@@ -98,7 +98,11 @@
         .mb-20 { margin-bottom: 20px; }
         .alert-error { background: #fed7d7; color: #742a2a; padding: 12px; border-radius: 8px; margin-bottom: 20px; }
         .alert-success { background: #c6f6d5; color: #22543d; padding: 12px; border-radius: 8px; margin-bottom: 20px; }
-        .user-info { font-size: 0.9rem; color: var(--blanco); background: var(--marron-claro); padding: 5px 12px; border-radius: 20px; }
+        .alert-warning { background: #feebc8; color: #744210; padding: 12px; border-radius: 8px; margin-bottom: 20px; }
+        .user-info { font-size: 0.9rem; color: var(--blanco); background: #A0522D; padding: 5px 12px; border-radius: 20px; }
+        .password-wrapper { position: relative; display: flex; align-items: center; }
+        .password-wrapper input { flex: 1; padding-right: 50px; }
+        .toggle-password { position: absolute; right: 12px; background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--marron); }
     </style>
 </head>
 <body>
@@ -174,16 +178,18 @@
                                     <select id="ingreso-rubro" class="form-control" required onchange="toggleCamposCuota()">
                                         <option value="">Seleccionar</option>
                                         <option value="Cuota">Cuota</option>
-                                        <option value="Campamento">Campamento</option>
+                                        <option value="Campamento Invierno">Campamento Invierno</option>
+                                        <option value="Campamento Verano">Campamento Verano</option>
                                         <option value="Eventos">Eventos</option>
                                         <option value="Donaciones">Donaciones</option>
+                                        <option value="Subsidios">Subsidios</option>
                                     </select>
                                 </div>
                             </div>
                             <div id="campos-cuota" class="hidden">
                                 <div class="grid">
                                     <div class="form-group"><label>Beneficiario *</label><select id="ingreso-beneficiario" class="form-control"></select></div>
-                                    <div class="form-group"><label>Cuota *</label><select id="ingreso-cuota" class="form-control"><option value="1">Primera cuota</option><option value="2">Segunda cuota</option></select></div>
+                                    <div class="form-group"><label>Cuota *</label><select id="ingreso-cuota" class="form-control"><option value="Cuota 1">Primera cuota</option><option value="Cuota 2">Segunda cuota</option></select></div>
                                 </div>
                             </div>
                             <div class="grid">
@@ -212,8 +218,17 @@
                                         <option value="Mantenimiento">Mantenimiento</option>
                                         <option value="Programa">Programa</option>
                                         <option value="Limpieza">Limpieza</option>
+                                        <option value="Merienda">Merienda</option>
                                         <option value="Campamento">Campamento</option>
                                         <option value="Eventos">Eventos</option>
+                                        <option value="Formación">Formación</option>
+                                        <option value="Donaciones">Donaciones</option>
+                                        <option value="Proveduría">Proveduría</option>
+                                        <option value="Librería">Librería</option>
+                                        <option value="Distrito">Distrito</option>
+                                        <option value="Viáticos">Viáticos</option>
+                                        <option value="Farmacia">Farmacia</option>
+                                        <option value="Premios/Regalos">Premios/Regalos</option>
                                     </select>
                                 </div>
                             </div>
@@ -233,14 +248,14 @@
 
                 <div id="deudores-section" class="hidden">
                     <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
-                        <h2>Estado de Cuotas</h2>
-                        <button class="btn btn-success" onclick="descargarListado()">📥 Descargar CSV</button>
+                        <h2>Estado de Cuotas y Campamentos</h2>
+                        <button class="btn btn-success" onclick="descargarDeudores()">📥 Descargar CSV</button>
                     </div>
                     <div class="card"><div class="filters">
                         <div class="filter-group"><label>Rama:</label><select id="filtro-rama" class="form-control" onchange="filtrarDeudores()"><option value="TODAS">Todas</option><option>Manada</option><option>Unidad</option><option>Caminantes</option><option>Rovers</option></select></div>
-                        <div class="filter-group"><label>Estado:</label><select id="filtro-estado" class="form-control" onchange="filtrarDeudores()"><option value="TODOS">Todos</option><option value="PENDIENTE">Pendientes</option><option value="AL_DIA">Al día</option></select></div>
+                        <div class="filter-group"><label>Estado:</label><select id="filtro-estado" class="form-control" onchange="filtrarDeudores()"><option value="TODOS">Todos</option><option value="PENDIENTE">Con deuda pendiente</option><option value="AL_DIA">Al día</option></select></div>
                     </div></div>
-                    <div class="card"><div class="table-responsive"><table id="tabla-deudores"><thead><tr><th>Beneficiario</th><th>Rama</th><th>Cuota 1</th><th>Cuota 2</th><th>Pagado</th><th>Pendiente</th></thead><tbody></tbody></table></div></div>
+                    <div class="card"><div class="table-responsive"><table id="tabla-deudores"><thead><tr><th>Beneficiario</th><th>Rama</th><th>Cuota</th><th>Camp. Invierno</th><th>Camp. Verano</th><th>Total Pagado</th><th>Total Pendiente</th></thead><tbody></tbody></table></div></div>
                 </div>
 
                 <div id="informes-section" class="hidden">
@@ -258,7 +273,6 @@
         const SPREADSHEET_ID = '1-1ADHfkdnuWmPy4Fnuxg9ULqm5xGb1pO-crgqWukFi0';
         const DRIVE_FOLDER_ID = '14wcPHlhFWG8oM9MBK9ad4AwuJDwR7yey';
         
-        // Obtener la URI actual dinámicamente
         const getRedirectUri = () => {
             let uri = window.location.origin + window.location.pathname;
             if (!uri.endsWith('/') && !uri.endsWith('.html')) uri += '/';
@@ -267,6 +281,7 @@
 
         let accessToken = null;
         let currentUser = null;
+        let beneficiariosData = [];
 
         // ========== AUTENTICACIÓN ==========
         function loginWithGoogle() {
@@ -288,7 +303,7 @@
                 const params = new URLSearchParams(window.location.hash.substring(1));
                 if (params.has('access_token')) {
                     accessToken = params.get('access_token');
-                    console.log('Token obtenido correctamente');
+                    console.log('✅ Token obtenido correctamente');
                     
                     fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
                         headers: { 'Authorization': `Bearer ${accessToken}` }
@@ -325,7 +340,7 @@
             document.getElementById('fecha-actual').textContent = new Date().toLocaleDateString('es-AR');
             document.getElementById('user-email').textContent = currentUser || 'Usuario';
             cargarBeneficiarios();
-            cargarSaldos();
+            cargarDeudores();
         }
 
         function logout() {
@@ -346,60 +361,132 @@
         }
 
         // ========== LECTURA DE DATOS ==========
-        async function cargarSaldos() {
-            if (!accessToken) return;
-            try {
-                const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/CONFIG!A:B`, {
-                    headers: { 'Authorization': `Bearer ${accessToken}` }
-                });
-                if (res.ok) console.log('Config cargada');
-            } catch(e) { console.error(e); }
-        }
-
         async function cargarBeneficiarios() {
             if (!accessToken) return;
             try {
-                const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/BENEFICIARIOS!A:G`, {
-                    headers: { 'Authorization': `Bearer ${accessToken}` }
-                });
+                const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/BENEFICIARIOS!A:E?key=AIzaSyDktlihiPds7AFkLSmrjV-Z0tauWCdqC7o`);
                 if (!res.ok) throw new Error('Error al cargar beneficiarios');
                 const data = await res.json();
-                const select = document.getElementById('ingreso-beneficiario');
-                select.innerHTML = '<option value="">Seleccionar</option>';
-                if (data.values?.length > 1) {
-                    data.values.slice(1).forEach(row => {
-                        if (row[0] && row[6] !== 'NO')
-                            select.innerHTML += `<option value="${row[0]}">${row[1]}, ${row[2]} (${row[3]})</option>`;
+                
+                if (data.values && data.values.length > 1) {
+                    beneficiariosData = data.values.slice(1).filter(row => row[4] === 'SI');
+                    const select = document.getElementById('ingreso-beneficiario');
+                    select.innerHTML = '<option value="">Seleccionar</option>';
+                    beneficiariosData.forEach(row => {
+                        select.innerHTML += `<option value="${row[0]}">${row[1]}, ${row[2]} (${row[3]})</option>`;
                     });
                 }
-                cargarTablaDeudores(data.values);
             } catch(e) { console.error(e); }
         }
 
-        function cargarTablaDeudores(beneficiarios) {
-            const tbody = document.querySelector('#tabla-deudores tbody');
-            tbody.innerHTML = '';
-            if (!beneficiarios || beneficiarios.length <= 1) {
-                tbody.innerHTML = '<tr><td colspan="6" class="text-center">Cargando beneficiarios...</td></tr>';
-                return;
-            }
-            beneficiarios.slice(1, 15).forEach(row => {
-                if (!row[1]) return;
-                const estado1 = Math.random() > 0.6 ? 'Pagado' : (Math.random() > 0.5 ? 'Parcial' : 'Pendiente');
-                const estado2 = Math.random() > 0.6 ? 'Pagado' : (Math.random() > 0.5 ? 'Parcial' : 'Pendiente');
-                const badge1 = estado1 === 'Pagado' ? '<span class="badge-success">Pagado</span>' : (estado1 === 'Parcial' ? '<span class="badge-warning">Parcial</span>' : '<span class="badge-danger">Pendiente</span>');
-                const badge2 = estado2 === 'Pagado' ? '<span class="badge-success">Pagado</span>' : (estado2 === 'Parcial' ? '<span class="badge-warning">Parcial</span>' : '<span class="badge-danger">Pendiente</span>');
-                const pagado = Math.floor(Math.random() * 90000);
-                tbody.innerHTML += `<tr><td>${row[1]}, ${row[2]}</td><td>${row[3]}</td><td>${badge1}</td><td>${badge2}</td><td>$${pagado.toLocaleString()}</td><td>$${(90000 - pagado).toLocaleString()}</td></tr>`;
+        async function cargarDeudores() {
+            if (!accessToken) return;
+            try {
+                const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/INGRESOS_unitario!A:F?key=AIzaSyDktlihiPds7AFkLSmrjV-Z0tauWCdqC7o`);
+                const data = await res.json();
+                const ingresos = data.values || [];
+                
+                const tbody = document.querySelector('#tabla-deudores tbody');
+                tbody.innerHTML = '';
+                
+                for (let ben of beneficiariosData) {
+                    const id = ben[0];
+                    const nombre = `${ben[1]}, ${ben[2]}`;
+                    const rama = ben[3];
+                    
+                    let cuotaPagado = 0;
+                    let campInvPagado = 0;
+                    let campVerPagado = 0;
+                    
+                    ingresos.slice(1).forEach(row => {
+                        if (row[2] === id) {
+                            const monto = parseFloat(row[4]) || 0;
+                            if (row[3] === 'Cuota 1' || row[3] === 'Cuota 2') cuotaPagado += monto;
+                            else if (row[3] === 'Campamento Invierno') campInvPagado += monto;
+                            else if (row[3] === 'Campamento Verano') campVerPagado += monto;
+                        }
+                    });
+                    
+                    const cuotaTotal = 80000;
+                    const cuotaPendiente = Math.max(0, cuotaTotal - cuotaPagado);
+                    const campInvPendiente = Math.max(0, 60000 - campInvPagado);
+                    const campVerPendiente = Math.max(0, 500000 - campVerPagado);
+                    const totalPagado = cuotaPagado + campInvPagado + campVerPagado;
+                    const totalPendiente = cuotaPendiente + campInvPendiente + campVerPendiente;
+                    
+                    const badgeCuota = cuotaPendiente === 0 ? '<span class="badge-success">Pagado</span>' : `<span class="badge-danger">$${cuotaPendiente.toLocaleString()}</span>`;
+                    const badgeInv = campInvPendiente === 0 ? '<span class="badge-success">Pagado</span>' : `<span class="badge-danger">$${campInvPendiente.toLocaleString()}</span>`;
+                    const badgeVer = campVerPendiente === 0 ? '<span class="badge-success">Pagado</span>' : `<span class="badge-danger">$${campVerPendiente.toLocaleString()}</span>`;
+                    
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${nombre}</td>
+                            <td>${rama}</td>
+                            <td>${badgeCuota}</td>
+                            <td>${badgeInv}</td>
+                            <td>${badgeVer}</td>
+                            <td>$${totalPagado.toLocaleString()}</td>
+                            <td>$${totalPendiente.toLocaleString()}</td>
+                        </tr>
+                    `;
+                }
+            } catch(e) { console.error(e); }
+        }
+
+        function filtrarDeudores() {
+            const ramaFiltro = document.getElementById('filtro-rama').value;
+            const estadoFiltro = document.getElementById('filtro-estado').value;
+            const filas = document.querySelectorAll('#tabla-deudores tbody tr');
+            
+            filas.forEach(fila => {
+                const rama = fila.cells[1].textContent;
+                const pendiente = parseFloat(fila.cells[6].textContent.replace(/[^0-9.-]+/g, '')) || 0;
+                let mostrar = true;
+                if (ramaFiltro !== 'TODAS' && rama !== ramaFiltro) mostrar = false;
+                if (estadoFiltro === 'PENDIENTE' && pendiente === 0) mostrar = false;
+                if (estadoFiltro === 'AL_DIA' && pendiente > 0) mostrar = false;
+                fila.style.display = mostrar ? '' : 'none';
             });
         }
 
-        function cargarDeudores() { cargarBeneficiarios(); }
-        function toggleCamposCuota() { document.getElementById('campos-cuota').classList.toggle('hidden', document.getElementById('ingreso-rubro').value !== 'Cuota'); }
-        function filtrarDeudores() { /* filtro básico */ }
-        function descargarListado() { alert('Descarga de listado'); }
-        function generarLibroCaja() { alert('Generando libro de caja...'); }
-        function generarEjecucion() { alert('Generando ejecución...'); }
+        function descargarDeudores() {
+            const filas = document.querySelectorAll('#tabla-deudores tbody tr');
+            let csv = 'Beneficiario,Rama,Cuota,Camp.Invierno,Camp.Verano,Total Pagado,Total Pendiente\n';
+            filas.forEach(fila => {
+                const celdas = fila.cells;
+                csv += `"${celdas[0].textContent}",${celdas[1].textContent},"${celdas[2].textContent}","${celdas[3].textContent}","${celdas[4].textContent}",${celdas[5].textContent},${celdas[6].textContent}\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `deudores_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+        }
+
+        function toggleCamposCuota() {
+            document.getElementById('campos-cuota').classList.toggle('hidden', document.getElementById('ingreso-rubro').value !== 'Cuota');
+        }
+
+        function generarLibroCaja() {
+            const desde = document.getElementById('caja-desde').value;
+            const hasta = document.getElementById('caja-hasta').value;
+            if (!desde || !hasta) { alert('Seleccioná las fechas'); return; }
+            alert(`📒 Libro de caja desde ${desde} hasta ${hasta}`);
+        }
+
+        function generarEjecucion() {
+            const periodo = document.getElementById('periodo').value;
+            alert(`📊 Ejecución presupuestaria - ${periodo === 'anual' ? 'Período Anual' : 'Período Legal'}`);
+        }
+
+        function mostrarMensaje(elementId, texto, tipo) {
+            const msgDiv = document.getElementById(elementId);
+            msgDiv.textContent = texto;
+            msgDiv.className = tipo === 'success' ? 'alert-success' : (tipo === 'warning' ? 'alert-warning' : 'alert-error');
+            msgDiv.classList.remove('hidden');
+            setTimeout(() => msgDiv.classList.add('hidden'), 4000);
+        }
 
         // ========== GUARDAR INGRESO ==========
         async function guardarIngreso(event) {
@@ -416,8 +503,9 @@
             
             if (!fecha || !rubro || !monto) { alert('Completá los campos obligatorios'); return false; }
             
+            const values = [[fecha, detalle, beneficiario || '', rubro === 'Cuota' ? cuota : rubro, monto, comprobante]];
+            
             try {
-                const values = [[fecha, rubro, beneficiario || '', cuota, monto, comprobante, detalle, currentUser, new Date().toISOString()]];
                 const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/INGRESOS_unitario:append?valueInputOption=USER_ENTERED`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
@@ -428,13 +516,11 @@
                     mostrarMensaje('ingreso-mensaje', '✅ Ingreso guardado correctamente', 'success');
                     document.getElementById('form-ingreso').reset();
                     document.getElementById('campos-cuota').classList.add('hidden');
+                    cargarDeudores();
                 } else {
-                    const error = await res.text();
-                    console.error('Error:', error);
                     mostrarMensaje('ingreso-mensaje', '❌ Error al guardar', 'error');
                 }
             } catch(e) { 
-                console.error(e);
                 mostrarMensaje('ingreso-mensaje', '❌ Error de conexión', 'error');
             }
             return false;
@@ -455,13 +541,18 @@
             
             if (archivo) {
                 try {
-                    const fileName = `${fecha}_${rubro}_${comprobante || 'sincomp'}.${archivo.name.split('.').pop()}`;
+                    if (archivo.size > 10 * 1024 * 1024) {
+                        mostrarMensaje('egreso-mensaje', 'El archivo es demasiado grande (máx 10MB)', 'warning');
+                        return false;
+                    }
+                    
+                    const fileName = `${fecha.replace(/-/g, '')}_${rubro}_${comprobante || 'sincomp'}.${archivo.name.split('.').pop()}`;
                     const metadata = { name: fileName, parents: [DRIVE_FOLDER_ID] };
                     const formData = new FormData();
                     formData.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
                     formData.append('file', archivo);
                     
-                    const uploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=webViewLink', {
+                    const uploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink', {
                         method: 'POST',
                         headers: { 'Authorization': `Bearer ${accessToken}` },
                         body: formData
@@ -469,16 +560,18 @@
                     
                     if (uploadRes.ok) {
                         const data = await uploadRes.json();
-                        linkArchivo = data.webViewLink || 'Subido correctamente';
-                        console.log('Archivo subido:', linkArchivo);
+                        linkArchivo = data.webViewLink || `https://drive.google.com/file/d/${data.id}/view`;
+                        console.log('✅ Archivo subido:', linkArchivo);
                     } else {
-                        console.warn('Subida fallida:', await uploadRes.text());
+                        console.warn('Subida fallida');
+                        mostrarMensaje('egreso-mensaje', '⚠️ El archivo no pudo subirse, pero el egreso se guardará', 'warning');
                     }
                 } catch(e) { console.error('Error al subir archivo:', e); }
             }
             
+            const values = [[fecha, rubro, detalle, comprobante, monto, linkArchivo, currentUser, new Date().toISOString()]];
+            
             try {
-                const values = [[fecha, rubro, detalle, comprobante, monto, linkArchivo, currentUser, new Date().toISOString()]];
                 const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/EGRESOS:append?valueInputOption=USER_ENTERED`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
@@ -489,25 +582,14 @@
                     mostrarMensaje('egreso-mensaje', '✅ Egreso guardado correctamente' + (linkArchivo ? ' (archivo adjunto)' : ''), 'success');
                     document.getElementById('form-egreso').reset();
                 } else {
-                    const error = await res.text();
-                    console.error('Error:', error);
                     mostrarMensaje('egreso-mensaje', '❌ Error al guardar', 'error');
                 }
             } catch(e) {
-                console.error(e);
                 mostrarMensaje('egreso-mensaje', '❌ Error de conexión', 'error');
             }
             return false;
         }
-        
-        function mostrarMensaje(elementId, texto, tipo) {
-            const msgDiv = document.getElementById(elementId);
-            msgDiv.textContent = texto;
-            msgDiv.className = tipo === 'success' ? 'alert-success' : 'alert-error';
-            msgDiv.classList.remove('hidden');
-            setTimeout(() => msgDiv.classList.add('hidden'), 4000);
-        }
-        
+
         // ========== INICIALIZACIÓN ==========
         window.onload = () => {
             console.log('🚀 Sistema iniciado');
