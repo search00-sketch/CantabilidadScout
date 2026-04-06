@@ -349,8 +349,8 @@
             document.getElementById('fecha-actual').textContent = new Date().toLocaleDateString('es-AR');
             document.getElementById('user-email').textContent = currentUser || 'Usuario';
             cargarBeneficiarios();
-            cargarDeudores();
             cargarSaldos();
+            cargarDeudores();
         }
 
         function logout() {
@@ -380,13 +380,13 @@
                     headers: { 'Authorization': `Bearer ${accessToken}` }
                 });
                 const configData = await configRes.json();
-                let saldoInicial = 5276798.05; // valor por defecto
+                let saldoInicial = 5276798.05;
                 if (configData.values) {
                     const totalRow = configData.values.find(row => row[0] === 'total_inicial');
                     if (totalRow) saldoInicial = parseFloat(totalRow[1]) || 5276798.05;
                 }
                 
-                // Leer INGRESOS_unitario
+                // Leer INGRESOS_unitario (columna E es Ingreso)
                 const ingresosRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/INGRESOS_unitario!A:F?key=AIzaSyDktlihiPds7AFkLSmrjV-Z0tauWCdqC7o`);
                 const ingresosData = await ingresosRes.json();
                 let totalIngresos = 0;
@@ -397,7 +397,7 @@
                     });
                 }
                 
-                // Leer EGRESOS
+                // Leer EGRESOS (columna E es Monto)
                 const egresosRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/EGRESOS!A:E?key=AIzaSyDktlihiPds7AFkLSmrjV-Z0tauWCdqC7o`);
                 const egresosData = await egresosRes.json();
                 let totalEgresos = 0;
@@ -558,7 +558,7 @@
             
             if (!fecha || !rubro || !monto) { alert('Completá los campos obligatorios'); return false; }
             
-            // Formato correcto para INGRESOS_unitario: Fecha, Detalle, ID_Beneficiario, Rubro, Monto, Comprobante
+            // Formato: Fecha, Detalle, ID_Beneficiario, Rubro, Monto, Comprobante
             const values = [[fecha, detalle, beneficiario || '', rubro === 'Cuota' ? cuota : rubro, monto, comprobante]];
             
             try {
@@ -572,8 +572,8 @@
                     mostrarMensaje('ingreso-mensaje', '✅ Ingreso guardado correctamente', 'success');
                     document.getElementById('form-ingreso').reset();
                     document.getElementById('campos-cuota').classList.add('hidden');
-                    cargarDeudores();
                     cargarSaldos();
+                    cargarDeudores();
                 } else {
                     mostrarMensaje('ingreso-mensaje', '❌ Error al guardar', 'error');
                 }
@@ -583,7 +583,7 @@
             return false;
         }
 
-        // ========== GUARDAR EGRESO CON SUBIDA A DRIVE ==========
+        // ========== GUARDAR EGRESO ==========
         async function guardarEgreso(event) {
             event.preventDefault();
             if (!accessToken) { alert('No hay sesión activa'); return false; }
@@ -620,19 +620,13 @@
                         const data = await uploadRes.json();
                         linkArchivo = data.webViewLink || `https://drive.google.com/file/d/${data.id}/view`;
                         console.log('✅ Archivo subido:', linkArchivo);
-                        mostrarMensaje('egreso-mensaje', '✅ Archivo subido correctamente', 'success');
                     } else {
-                        const errorText = await uploadRes.text();
-                        console.error('Error en Drive:', errorText);
-                        mostrarMensaje('egreso-mensaje', '⚠️ El archivo no pudo subirse, pero el egreso se guardará', 'warning');
+                        console.warn('Subida fallida');
                     }
-                } catch(e) { 
-                    console.error('Error al subir archivo:', e);
-                    mostrarMensaje('egreso-mensaje', '⚠️ Error al subir archivo, pero el egreso se guardará', 'warning');
-                }
+                } catch(e) { console.error('Error al subir archivo:', e); }
             }
             
-            // Formato correcto para EGRESOS: Fecha, Rubro, Detalle, N° Comprobante, Monto, LinkFoto, Usuario, FechaHora
+            // Formato correcto EGRESOS: Fecha, Rubro, Detalle, N° Comprobante, Monto, LinkFoto, Usuario, FechaHora
             const values = [[fecha, rubro, detalle, comprobante, monto, linkArchivo, currentUser, new Date().toISOString()]];
             
             try {
