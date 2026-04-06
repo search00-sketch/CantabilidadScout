@@ -149,21 +149,9 @@
                         <div id="fecha-actual"></div>
                     </div>
                     <div class="grid">
-                        <div class="stat-card">
-                            <h3>TOTAL ACTIVOS</h3>
-                            <div class="stat-number" id="saldo-total">$ 5.276.798</div>
-                            <small>Saldo inicial + Ingresos - Egresos</small>
-                        </div>
-                        <div class="stat-card">
-                            <h3>TOTAL INGRESOS</h3>
-                            <div class="stat-number" id="total-ingresos">$ 0</div>
-                            <small>Período actual</small>
-                        </div>
-                        <div class="stat-card">
-                            <h3>TOTAL EGRESOS</h3>
-                            <div class="stat-number" id="total-egresos">$ 0</div>
-                            <small>Período actual</small>
-                        </div>
+                        <div class="stat-card"><h3>TOTAL ACTIVOS</h3><div class="stat-number" id="saldo-total">$ 5.276.798</div><small>Saldo inicial + Ingresos - Egresos</small></div>
+                        <div class="stat-card"><h3>TOTAL INGRESOS</h3><div class="stat-number" id="total-ingresos">$ 0</div><small>Período actual</small></div>
+                        <div class="stat-card"><h3>TOTAL EGRESOS</h3><div class="stat-number" id="total-egresos">$ 0</div><small>Período actual</small></div>
                     </div>
                     <div class="grid" style="grid-template-columns: repeat(4,1fr);">
                         <div class="card text-center" onclick="showSection('ingresos')" style="cursor:pointer;"><h3 style="font-size:2rem;">💰</h3><p>Cargar Ingreso</p></div>
@@ -296,7 +284,6 @@
         function loginWithGoogle() {
             const redirectUri = getRedirectUri();
             console.log('Redirect URI:', redirectUri);
-            
             const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
                 `client_id=${CLIENT_ID}&` +
                 `redirect_uri=${encodeURIComponent(redirectUri)}&` +
@@ -312,8 +299,7 @@
                 const params = new URLSearchParams(window.location.hash.substring(1));
                 if (params.has('access_token')) {
                     accessToken = params.get('access_token');
-                    console.log('✅ Token obtenido correctamente');
-                    
+                    console.log('✅ Token obtenido');
                     fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
                         headers: { 'Authorization': `Bearer ${accessToken}` }
                     })
@@ -375,7 +361,6 @@
         async function cargarSaldos() {
             if (!accessToken) return;
             try {
-                // Leer CONFIG para saldo inicial
                 const configRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/CONFIG!A:B`, {
                     headers: { 'Authorization': `Bearer ${accessToken}` }
                 });
@@ -386,7 +371,6 @@
                     if (totalRow) saldoInicial = parseFloat(totalRow[1]) || 5276798.05;
                 }
                 
-                // Leer INGRESOS_unitario (columna E es Ingreso)
                 const ingresosRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/INGRESOS_unitario!A:F?key=AIzaSyDktlihiPds7AFkLSmrjV-Z0tauWCdqC7o`);
                 const ingresosData = await ingresosRes.json();
                 let totalIngresos = 0;
@@ -397,7 +381,6 @@
                     });
                 }
                 
-                // Leer EGRESOS (columna E es Monto)
                 const egresosRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/EGRESOS!A:E?key=AIzaSyDktlihiPds7AFkLSmrjV-Z0tauWCdqC7o`);
                 const egresosData = await egresosRes.json();
                 let totalEgresos = 0;
@@ -409,21 +392,17 @@
                 }
                 
                 const saldoActual = saldoInicial + totalIngresos - totalEgresos;
-                
                 document.getElementById('saldo-total').textContent = `$ ${saldoActual.toLocaleString('es-AR')}`;
                 document.getElementById('total-ingresos').textContent = `$ ${totalIngresos.toLocaleString('es-AR')}`;
                 document.getElementById('total-egresos').textContent = `$ ${totalEgresos.toLocaleString('es-AR')}`;
-                
-            } catch(e) { console.error('Error cargando saldos:', e); }
+            } catch(e) { console.error(e); }
         }
 
         // ========== LECTURA DE DATOS ==========
         async function cargarBeneficiarios() {
             try {
                 const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/BENEFICIARIOS!A:E?key=AIzaSyDktlihiPds7AFkLSmrjV-Z0tauWCdqC7o`);
-                if (!res.ok) throw new Error('Error al cargar beneficiarios');
                 const data = await res.json();
-                
                 if (data.values && data.values.length > 1) {
                     beneficiariosData = data.values.slice(1).filter(row => row[4] === 'SI');
                     const select = document.getElementById('ingreso-beneficiario');
@@ -440,19 +419,13 @@
                 const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/INGRESOS_unitario!A:F?key=AIzaSyDktlihiPds7AFkLSmrjV-Z0tauWCdqC7o`);
                 const data = await res.json();
                 const ingresos = data.values || [];
-                
                 const tbody = document.querySelector('#tabla-deudores tbody');
                 tbody.innerHTML = '';
-                
                 for (let ben of beneficiariosData) {
                     const id = ben[0];
                     const nombre = `${ben[1]}, ${ben[2]}`;
                     const rama = ben[3];
-                    
-                    let cuotaPagado = 0;
-                    let campInvPagado = 0;
-                    let campVerPagado = 0;
-                    
+                    let cuotaPagado = 0, campInvPagado = 0, campVerPagado = 0;
                     ingresos.slice(1).forEach(row => {
                         if (row[2] === id) {
                             const monto = parseFloat(row[4]) || 0;
@@ -461,29 +434,15 @@
                             else if (row[3] === 'Campamento Verano') campVerPagado += monto;
                         }
                     });
-                    
-                    const cuotaTotal = 80000;
-                    const cuotaPendiente = Math.max(0, cuotaTotal - cuotaPagado);
+                    const cuotaPendiente = Math.max(0, 80000 - cuotaPagado);
                     const campInvPendiente = Math.max(0, 60000 - campInvPagado);
                     const campVerPendiente = Math.max(0, 500000 - campVerPagado);
                     const totalPagado = cuotaPagado + campInvPagado + campVerPagado;
                     const totalPendiente = cuotaPendiente + campInvPendiente + campVerPendiente;
-                    
                     const badgeCuota = cuotaPendiente === 0 ? '<span class="badge-success">Pagado</span>' : `<span class="badge-danger">$${cuotaPendiente.toLocaleString()}</span>`;
                     const badgeInv = campInvPendiente === 0 ? '<span class="badge-success">Pagado</span>' : `<span class="badge-danger">$${campInvPendiente.toLocaleString()}</span>`;
                     const badgeVer = campVerPendiente === 0 ? '<span class="badge-success">Pagado</span>' : `<span class="badge-danger">$${campVerPendiente.toLocaleString()}</span>`;
-                    
-                    tbody.innerHTML += `
-                        <tr>
-                            <td>${nombre}</td>
-                            <td>${rama}</td>
-                            <td>${badgeCuota}</td>
-                            <td>${badgeInv}</td>
-                            <td>${badgeVer}</td>
-                            <td>$${totalPagado.toLocaleString()}</td>
-                            <td>$${totalPendiente.toLocaleString()}</td>
-                        </tr>
-                    `;
+                    tbody.innerHTML += `<tr><td>${nombre}</td><td>${rama}</td><td>${badgeCuota}</td><td>${badgeInv}</td><td>${badgeVer}</td><td>$${totalPagado.toLocaleString()}</td><td>$${totalPendiente.toLocaleString()}</td></tr>`;
                 }
             } catch(e) { console.error(e); }
         }
@@ -492,7 +451,6 @@
             const ramaFiltro = document.getElementById('filtro-rama').value;
             const estadoFiltro = document.getElementById('filtro-estado').value;
             const filas = document.querySelectorAll('#tabla-deudores tbody tr');
-            
             filas.forEach(fila => {
                 const rama = fila.cells[1].textContent;
                 const pendiente = parseFloat(fila.cells[6].textContent.replace(/[^0-9.-]+/g, '')) || 0;
@@ -547,7 +505,6 @@
         async function guardarIngreso(event) {
             event.preventDefault();
             if (!accessToken) { alert('No hay sesión activa'); return false; }
-            
             const fecha = document.getElementById('ingreso-fecha').value;
             const rubro = document.getElementById('ingreso-rubro').value;
             const monto = document.getElementById('ingreso-monto').value;
@@ -555,35 +512,26 @@
             const detalle = document.getElementById('ingreso-detalle').value;
             const beneficiario = document.getElementById('ingreso-beneficiario').value;
             const cuota = document.getElementById('ingreso-cuota')?.value || '';
-            
             if (!fecha || !rubro || !monto) { alert('Completá los campos obligatorios'); return false; }
-            
-            // Formato: Fecha, Detalle, ID_Beneficiario, Rubro, Monto, Comprobante
             const values = [[fecha, detalle, beneficiario || '', rubro === 'Cuota' ? cuota : rubro, monto, comprobante]];
-            
             try {
                 const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/INGRESOS_unitario:append?valueInputOption=USER_ENTERED`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ values })
                 });
-                
                 if (res.ok) {
                     mostrarMensaje('ingreso-mensaje', '✅ Ingreso guardado correctamente', 'success');
                     document.getElementById('form-ingreso').reset();
                     document.getElementById('campos-cuota').classList.add('hidden');
                     cargarSaldos();
                     cargarDeudores();
-                } else {
-                    mostrarMensaje('ingreso-mensaje', '❌ Error al guardar', 'error');
-                }
-            } catch(e) { 
-                mostrarMensaje('ingreso-mensaje', '❌ Error de conexión', 'error');
-            }
+                } else { mostrarMensaje('ingreso-mensaje', '❌ Error al guardar', 'error'); }
+            } catch(e) { mostrarMensaje('ingreso-mensaje', '❌ Error de conexión', 'error'); }
             return false;
         }
 
-        // ========== GUARDAR EGRESO ==========
+        // ========== GUARDAR EGRESO CON SUBIDA A DRIVE ==========
         async function guardarEgreso(event) {
             event.preventDefault();
             if (!accessToken) { alert('No hay sesión activa'); return false; }
@@ -596,20 +544,20 @@
             const archivo = document.getElementById('egreso-archivo').files[0];
             let linkArchivo = '';
             
-            // Subir archivo a Drive si existe
             if (archivo) {
                 try {
                     if (archivo.size > 10 * 1024 * 1024) {
                         mostrarMensaje('egreso-mensaje', 'El archivo es demasiado grande (máx 10MB)', 'warning');
                         return false;
                     }
-                    
-                    const fileName = `${fecha.replace(/-/g, '')}_${rubro}_${comprobante || 'sincomp'}.${archivo.name.split('.').pop()}`;
+                    const extension = archivo.name.split('.').pop();
+                    const fileName = `${fecha.replace(/-/g, '')}_${rubro.replace(/ /g, '_')}_${comprobante || 'sincomp'}.${extension}`;
                     const metadata = { name: fileName, parents: [DRIVE_FOLDER_ID] };
                     const formData = new FormData();
                     formData.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
                     formData.append('file', archivo);
                     
+                    console.log('📤 Subiendo archivo a Drive...');
                     const uploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink', {
                         method: 'POST',
                         headers: { 'Authorization': `Bearer ${accessToken}` },
@@ -620,35 +568,31 @@
                         const data = await uploadRes.json();
                         linkArchivo = data.webViewLink || `https://drive.google.com/file/d/${data.id}/view`;
                         console.log('✅ Archivo subido:', linkArchivo);
+                        mostrarMensaje('egreso-mensaje', '✅ Archivo subido correctamente', 'success');
                     } else {
-                        console.warn('Subida fallida');
+                        const errorText = await uploadRes.text();
+                        console.error('Error en Drive:', errorText);
+                        mostrarMensaje('egreso-mensaje', '⚠️ El archivo no pudo subirse', 'warning');
                     }
-                } catch(e) { console.error('Error al subir archivo:', e); }
+                } catch(e) { 
+                    console.error('Error al subir archivo:', e);
+                    mostrarMensaje('egreso-mensaje', '⚠️ Error al subir archivo', 'warning');
+                }
             }
             
-            // Formato correcto EGRESOS: Fecha, Rubro, Detalle, N° Comprobante, Monto, LinkFoto, Usuario, FechaHora
             const values = [[fecha, rubro, detalle, comprobante, monto, linkArchivo, currentUser, new Date().toISOString()]];
-            
             try {
                 const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/EGRESOS:append?valueInputOption=USER_ENTERED`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ values })
                 });
-                
                 if (res.ok) {
                     mostrarMensaje('egreso-mensaje', '✅ Egreso guardado correctamente' + (linkArchivo ? ' (archivo adjunto)' : ''), 'success');
                     document.getElementById('form-egreso').reset();
                     cargarSaldos();
-                } else {
-                    const error = await res.text();
-                    console.error('Error en Sheets:', error);
-                    mostrarMensaje('egreso-mensaje', '❌ Error al guardar', 'error');
-                }
-            } catch(e) {
-                console.error('Error:', e);
-                mostrarMensaje('egreso-mensaje', '❌ Error de conexión', 'error');
-            }
+                } else { mostrarMensaje('egreso-mensaje', '❌ Error al guardar', 'error'); }
+            } catch(e) { mostrarMensaje('egreso-mensaje', '❌ Error de conexión', 'error'); }
             return false;
         }
 
