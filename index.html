@@ -63,6 +63,20 @@
         .btn-success { background: var(--marron); color: var(--blanco); }
         .btn-danger { background: var(--negro); color: var(--blanco); }
         .btn-sm { padding: 8px 12px; font-size: 0.85rem; }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        
+        /* Loading spinner */
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 0.6s linear infinite;
+            margin-right: 8px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
         
         /* Navegación responsive */
         .nav-bar {
@@ -93,7 +107,6 @@
         }
         .nav-links a:hover { background: var(--amarillo); color: var(--marron); }
         
-        /* Grid responsive */
         .grid { 
             display: grid; 
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); 
@@ -110,7 +123,6 @@
         .stat-number { font-size: 1.5rem; font-weight: bold; color: var(--negro); }
         .stat-card small { font-size: 0.7rem; }
         
-        /* Tablas responsive */
         .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
         table { 
             width: 100%; 
@@ -124,16 +136,13 @@
         th { background: var(--marron); color: var(--blanco); }
         td { border-bottom: 1px solid var(--amarillo); }
         
-        /* Badges */
         .badge-success { background: #10b981; color: white; padding: 3px 8px; border-radius: 4px; display: inline-block; font-size: 0.75rem; }
         .badge-warning { background: var(--amarillo); color: var(--marron); padding: 3px 8px; border-radius: 4px; display: inline-block; font-size: 0.75rem; }
         .badge-danger { background: #ef4444; color: white; padding: 3px 8px; border-radius: 4px; display: inline-block; font-size: 0.75rem; }
         
-        /* Filtros */
         .filters { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
         .filter-group { flex: 1; min-width: 120px; }
         
-        /* Utilidades */
         .hidden { display: none; }
         .text-center { text-align: center; }
         .text-right { text-align: right; }
@@ -144,7 +153,6 @@
         .alert-warning { background: #feebc8; color: #744210; padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 0.9rem; }
         .user-info { font-size: 0.8rem; color: var(--blanco); background: #A0522D; padding: 5px 10px; border-radius: 20px; }
         
-        /* Botón menú hamburguesa para móvil */
         .menu-toggle {
             display: none;
             background: var(--marron);
@@ -177,7 +185,6 @@
 </head>
 <body>
     <div class="container" id="app">
-        <!-- PANTALLA DE LOGIN -->
         <div id="login-screen" class="login-container">
             <div class="login-header">
                 <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/55/Emblem_of_the_Scouts_de_Argentina.svg/200px-Emblem_of_the_Scouts_de_Argentina.svg.png" style="width: 80px; margin-bottom: 10px;">
@@ -198,7 +205,6 @@
             </div>
         </div>
 
-        <!-- DASHBOARD -->
         <div id="dashboard-screen" class="hidden">
             <div class="nav-bar">
                 <div class="container">
@@ -217,7 +223,6 @@
             </div>
 
             <div class="container">
-                <!-- DASHBOARD SECTION -->
                 <div id="dashboard-section">
                     <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 15px;">
                         <h2 style="font-size: 1.3rem;">Panel Principal</h2>
@@ -236,7 +241,6 @@
                     </div>
                 </div>
 
-                <!-- INGRESOS SECTION -->
                 <div id="ingresos-section" class="hidden">
                     <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;">
                         <h2 style="font-size: 1.3rem;">Cargar Ingreso</h2>
@@ -270,12 +274,15 @@
                                 <div class="form-group"><label>N° Comprobante</label><input type="text" id="ingreso-comprobante" class="form-control"></div>
                             </div>
                             <div class="form-group"><label>Detalle</label><textarea id="ingreso-detalle" class="form-control" rows="2"></textarea></div>
-                            <div class="text-right"><button type="reset" class="btn" style="background:#ddd;">Cancelar</button><button type="submit" class="btn btn-success">Guardar Ingreso</button></div>
+                            <div class="form-group">
+                                <label>Comprobante (PDF o Imagen - opcional)</label>
+                                <input type="file" id="ingreso-archivo" class="form-control" accept="image/*,application/pdf">
+                            </div>
+                            <div class="text-right"><button type="reset" class="btn" style="background:#ddd;">Cancelar</button><button type="submit" class="btn btn-success" id="btn-guardar-ingreso">Guardar Ingreso</button></div>
                         </form>
                     </div>
                 </div>
 
-                <!-- EGRESOS SECTION -->
                 <div id="egresos-section" class="hidden">
                     <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;">
                         <h2 style="font-size: 1.3rem;">Cargar Egreso</h2>
@@ -315,12 +322,11 @@
                                 <label>Archivo (PDF o Imagen - opcional)</label>
                                 <input type="file" id="egreso-archivo" class="form-control" accept="image/*,application/pdf">
                             </div>
-                            <div class="text-right"><button type="reset" class="btn" style="background:#ddd;">Cancelar</button><button type="submit" class="btn btn-danger">Guardar Egreso</button></div>
+                            <div class="text-right"><button type="reset" class="btn" style="background:#ddd;">Cancelar</button><button type="submit" class="btn btn-danger" id="btn-guardar-egreso">Guardar Egreso</button></div>
                         </form>
                     </div>
                 </div>
 
-                <!-- DEUDORES SECTION -->
                 <div id="deudores-section" class="hidden">
                     <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;">
                         <h2 style="font-size: 1.3rem;">Estado de Cuentas</h2>
@@ -342,7 +348,6 @@
                     </div>
                 </div>
 
-                <!-- INFORMES SECTION -->
                 <div id="informes-section" class="hidden">
                     <h2 style="font-size: 1.3rem; margin-bottom: 15px;">Generar Informes</h2>
                     
@@ -367,6 +372,28 @@
                             <button class="btn btn-primary" onclick="descargarEjecucion()">Descargar Excel</button>
                         </div>
                     </div>
+
+                    <div class="card">
+                        <h3>📉 Ejecución por Categoría</h3>
+                        <div class="grid" style="grid-template-columns: 1fr auto auto; gap: 10px;">
+                            <div class="form-group"><label>Período</label>
+                                <select id="periodo-categoria" class="form-control">
+                                    <option value="anual">Anual (Mar 2026 - Mar 2027)</option>
+                                    <option value="legal">Legal (Jul 2025 - Jun 2026)</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-primary" onclick="descargarEjecucionPorCategoria()">Descargar Excel</button>
+                        </div>
+                        <div class="table-responsive mt-10">
+                            <table id="tabla-ejecucion">
+                                <thead>
+                                    <tr><th>Categoría</th><th>Presupuesto</th><th>Ejecutado</th><th>Diferencia</th><th>%</th></thead>
+                                <tbody id="tabla-ejecucion-body">
+                                    <tr><td colspan="5" class="text-center">Seleccioná un período y hacé clic en "Descargar Excel" para ver los datos</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -377,7 +404,8 @@
         // ========== CONFIGURACIÓN ==========
         const CLIENT_ID = '616578436911-bel2eqgcvtc0j6hldhtogis5av7vvsu3.apps.googleusercontent.com';
         const SPREADSHEET_ID = '1-1ADHfkdnuWmPy4Fnuxg9ULqm5xGb1pO-crgqWukFi0';
-        const DRIVE_FOLDER_ID = '14wcPHlhFWG8oM9MBK9ad4AwuJDwR7yey';
+        const DRIVE_FOLDER_ID_EGRESOS = '14wcPHlhFWG8oM9MBK9ad4AwuJDwR7yey';
+        const DRIVE_FOLDER_ID_INGRESOS = '1fi0HjXVY8y9KIrqB3G8bscp7wPxGBZ_1'; // <-- CAMBIAR POR EL ID REAL
         
         const getRedirectUri = () => {
             let uri = window.location.origin + window.location.pathname;
@@ -388,10 +416,24 @@
         let accessToken = null;
         let currentUser = null;
         let beneficiariosData = [];
+        let categoriasData = [];
+        let guardando = false;
 
         // ========== FUNCIONES UI ==========
         function toggleMenu() {
             document.getElementById('nav-links').classList.toggle('show');
+        }
+
+        function setLoading(buttonId, loading) {
+            const btn = document.getElementById(buttonId);
+            if (!btn) return;
+            if (loading) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="loading-spinner"></span> Guardando...';
+            } else {
+                btn.disabled = false;
+                btn.innerHTML = btn.id === 'btn-guardar-ingreso' ? 'Guardar Ingreso' : 'Guardar Egreso';
+            }
         }
 
         // ========== AUTENTICACIÓN ==========
@@ -447,6 +489,7 @@
             document.getElementById('fecha-actual').textContent = new Date().toLocaleDateString('es-AR');
             document.getElementById('user-email').textContent = currentUser || 'Usuario';
             cargarBeneficiarios();
+            cargarCategorias();
             cargarSaldos();
             cargarDeudores();
         }
@@ -467,6 +510,7 @@
             document.getElementById(`${s}-section`).classList.remove('hidden');
             if (s === 'deudores') cargarDeudores();
             if (s === 'dashboard') cargarSaldos();
+            if (s === 'informes') cargarEjecucionEnTabla();
         }
 
         // ========== CÁLCULO DE SALDOS ==========
@@ -511,6 +555,16 @@
         }
 
         // ========== LECTURA DE DATOS ==========
+        async function cargarCategorias() {
+            try {
+                const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/CATEGORIAS!A:D?key=AIzaSyDktlihiPds7AFkLSmrjV-Z0tauWCdqC7o`);
+                const data = await res.json();
+                if (data.values && data.values.length > 1) {
+                    categoriasData = data.values.slice(1).filter(row => row[0] === 'Egreso' && row[2] === 'SÍ');
+                }
+            } catch(e) { console.error(e); }
+        }
+
         async function cargarBeneficiarios() {
             try {
                 const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/BENEFICIARIOS!A:E?key=AIzaSyDktlihiPds7AFkLSmrjV-Z0tauWCdqC7o`);
@@ -584,6 +638,55 @@
             msgDiv.className = tipo === 'success' ? 'alert-success' : (tipo === 'warning' ? 'alert-warning' : 'alert-error');
             msgDiv.classList.remove('hidden');
             setTimeout(() => msgDiv.classList.add('hidden'), 4000);
+        }
+
+        // ========== EJECUCIÓN POR CATEGORÍA ==========
+        async function cargarEjecucionEnTabla() {
+            const periodo = document.getElementById('periodo-categoria').value;
+            const fechaInicio = periodo === 'anual' ? '2026-03-01' : '2025-07-01';
+            const fechaFin = periodo === 'anual' ? '2027-03-01' : '2026-06-30';
+            
+            try {
+                const egresosRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/EGRESOS!A:E?key=AIzaSyDktlihiPds7AFkLSmrjV-Z0tauWCdqC7o`);
+                const egresosData = await egresosRes.json();
+                const egresos = egresosData.values || [];
+                
+                // Calcular ejecutado por categoría
+                const ejecutado = {};
+                egresos.slice(1).forEach(row => {
+                    const fecha = row[0]?.split('T')[0] || '';
+                    if (fecha >= fechaInicio && fecha <= fechaFin) {
+                        const categoria = row[1] || 'Otros';
+                        const monto = parseFloat(row[4]) || 0;
+                        ejecutado[categoria] = (ejecutado[categoria] || 0) + monto;
+                    }
+                });
+                
+                // Presupuestos desde CATEGORIAS
+                const presupuestos = {};
+                categoriasData.forEach(cat => {
+                    presupuestos[cat[1]] = parseFloat(cat[3]) || 0;
+                });
+                
+                // Combinar y mostrar
+                const todasCategorias = new Set([...Object.keys(presupuestos), ...Object.keys(ejecutado)]);
+                const datos = [];
+                for (let cat of todasCategorias) {
+                    const pres = presupuestos[cat] || 0;
+                    const ejec = ejecutado[cat] || 0;
+                    const diff = pres - ejec;
+                    const porcentaje = pres > 0 ? ((ejec / pres) * 100).toFixed(1) : 0;
+                    datos.push([cat, pres, ejec, diff, porcentaje]);
+                }
+                datos.sort((a,b) => b[1] - a[1]);
+                
+                const tbody = document.getElementById('tabla-ejecucion-body');
+                tbody.innerHTML = '';
+                datos.forEach(d => {
+                    let diffClass = d[3] >= 0 ? 'text-success' : 'text-danger';
+                    tbody.innerHTML += `<tr><td>${d[0]}</td><td>$${d[1].toLocaleString()}</td><td>$${d[2].toLocaleString()}</td><td class="${diffClass}">$${d[3].toLocaleString()}</td><td>${d[4]}%</td></tr>`;
+                });
+            } catch(e) { console.error(e); }
         }
 
         // ========== DESCARGAS EN EXCEL ==========
@@ -660,42 +763,130 @@
                 });
                 
                 const datos = [
-                    ['Concepto', 'Monto'],
                     ['Total Ingresos', totalIngresos],
                     ['Total Egresos', totalEgresos],
                     ['Diferencia', totalIngresos - totalEgresos]
                 ];
-                descargarExcel(`ejecucion_${periodo}`, ['Concepto', 'Monto'], datos.slice(1));
+                descargarExcel(`ejecucion_${periodo}`, ['Concepto', 'Monto'], datos);
             } catch(e) { alert('Error al generar el informe'); }
+        }
+
+        async function descargarEjecucionPorCategoria() {
+            const periodo = document.getElementById('periodo-categoria').value;
+            const fechaInicio = periodo === 'anual' ? '2026-03-01' : '2025-07-01';
+            const fechaFin = periodo === 'anual' ? '2027-03-01' : '2026-06-30';
+            
+            try {
+                const egresosRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/EGRESOS!A:E?key=AIzaSyDktlihiPds7AFkLSmrjV-Z0tauWCdqC7o`);
+                const egresosData = await egresosRes.json();
+                const egresos = egresosData.values || [];
+                
+                const ejecutado = {};
+                egresos.slice(1).forEach(row => {
+                    const fecha = row[0]?.split('T')[0] || '';
+                    if (fecha >= fechaInicio && fecha <= fechaFin) {
+                        const categoria = row[1] || 'Otros';
+                        const monto = parseFloat(row[4]) || 0;
+                        ejecutado[categoria] = (ejecutado[categoria] || 0) + monto;
+                    }
+                });
+                
+                const presupuestos = {};
+                categoriasData.forEach(cat => {
+                    presupuestos[cat[1]] = parseFloat(cat[3]) || 0;
+                });
+                
+                const todasCategorias = new Set([...Object.keys(presupuestos), ...Object.keys(ejecutado)]);
+                const datos = [];
+                for (let cat of todasCategorias) {
+                    const pres = presupuestos[cat] || 0;
+                    const ejec = ejecutado[cat] || 0;
+                    const diff = pres - ejec;
+                    const porcentaje = pres > 0 ? ((ejec / pres) * 100).toFixed(1) : 0;
+                    datos.push([cat, pres, ejec, diff, `${porcentaje}%`]);
+                }
+                datos.sort((a,b) => b[1] - a[1]);
+                
+                descargarExcel(`ejecucion_por_categoria_${periodo}`, ['Categoría', 'Presupuesto', 'Ejecutado', 'Diferencia', '%'], datos);
+            } catch(e) { alert('Error al generar el informe'); }
+        }
+
+        // ========== SUBIR ARCHIVO A DRIVE ==========
+        async function subirArchivoADrive(archivo, folderId, tipo) {
+            if (!archivo) return '';
+            try {
+                if (archivo.size > 10 * 1024 * 1024) {
+                    mostrarMensaje(`${tipo}-mensaje`, 'El archivo es demasiado grande (máx 10MB)', 'warning');
+                    return '';
+                }
+                const extension = archivo.name.split('.').pop();
+                const fileName = `${new Date().toISOString().slice(0,19).replace(/:/g, '-')}_${archivo.name}`;
+                const metadata = { name: fileName, parents: [folderId] };
+                const formData = new FormData();
+                formData.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+                formData.append('file', archivo);
+                
+                const uploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${accessToken}` },
+                    body: formData
+                });
+                
+                if (uploadRes.ok) {
+                    const data = await uploadRes.json();
+                    return data.webViewLink || `https://drive.google.com/file/d/${data.id}/view`;
+                }
+                return '';
+            } catch(e) { console.error('Error al subir archivo:', e); return ''; }
         }
 
         // ========== GUARDAR INGRESO ==========
         async function guardarIngreso(event) {
             event.preventDefault();
             if (!accessToken) { alert('No hay sesión activa'); return false; }
-            const fecha = document.getElementById('ingreso-fecha').value;
-            const rubro = document.getElementById('ingreso-rubro').value;
-            const monto = document.getElementById('ingreso-monto').value;
-            const comprobante = document.getElementById('ingreso-comprobante').value;
-            const detalle = document.getElementById('ingreso-detalle').value;
-            const beneficiario = document.getElementById('ingreso-beneficiario').value;
-            const cuota = document.getElementById('ingreso-cuota')?.value || '';
-            if (!fecha || !rubro || !monto) { alert('Completá los campos obligatorios'); return false; }
-            const values = [[fecha, detalle, beneficiario || '', rubro === 'Cuota' ? cuota : rubro, monto, comprobante]];
+            if (guardando) { mostrarMensaje('ingreso-mensaje', '⚠️ Ya se está guardando, esperá un momento...', 'warning'); return false; }
+            
+            guardando = true;
+            setLoading('btn-guardar-ingreso', true);
+            
             try {
+                const fecha = document.getElementById('ingreso-fecha').value;
+                const rubro = document.getElementById('ingreso-rubro').value;
+                const monto = document.getElementById('ingreso-monto').value;
+                const comprobante = document.getElementById('ingreso-comprobante').value;
+                const detalle = document.getElementById('ingreso-detalle').value;
+                const beneficiario = document.getElementById('ingreso-beneficiario').value;
+                const cuota = document.getElementById('ingreso-cuota')?.value || '';
+                const archivo = document.getElementById('ingreso-archivo').files[0];
+                
+                if (!fecha || !rubro || !monto) { alert('Completá los campos obligatorios'); return false; }
+                
+                // Subir comprobante a Drive
+                let linkArchivo = '';
+                if (archivo) {
+                    linkArchivo = await subirArchivoADrive(archivo, DRIVE_FOLDER_ID_INGRESOS, 'ingreso');
+                }
+                
+                const values = [[fecha, detalle, beneficiario || '', rubro === 'Cuota' ? cuota : rubro, monto, comprobante, linkArchivo, currentUser, new Date().toISOString()]];
                 const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/INGRESOS_unitario:append?valueInputOption=USER_ENTERED`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ values })
                 });
+                
                 if (res.ok) {
-                    mostrarMensaje('ingreso-mensaje', '✅ Ingreso guardado correctamente', 'success');
+                    mostrarMensaje('ingreso-mensaje', '✅ Ingreso guardado correctamente' + (linkArchivo ? ' (comprobante adjunto)' : ''), 'success');
                     document.getElementById('form-ingreso').reset();
                     document.getElementById('campos-cuota').classList.add('hidden');
+                    document.getElementById('ingreso-archivo').value = '';
                     cargarSaldos();
                     cargarDeudores();
                 } else { mostrarMensaje('ingreso-mensaje', '❌ Error al guardar', 'error'); }
             } catch(e) { mostrarMensaje('ingreso-mensaje', '❌ Error de conexión', 'error'); }
+            finally {
+                guardando = false;
+                setLoading('btn-guardar-ingreso', false);
+            }
             return false;
         }
 
@@ -703,59 +894,50 @@
         async function guardarEgreso(event) {
             event.preventDefault();
             if (!accessToken) { alert('No hay sesión activa'); return false; }
+            if (guardando) { mostrarMensaje('egreso-mensaje', '⚠️ Ya se está guardando, esperá un momento...', 'warning'); return false; }
             
-            const fecha = document.getElementById('egreso-fecha').value;
-            const rubro = document.getElementById('egreso-rubro').value;
-            const detalle = document.getElementById('egreso-detalle').value;
-            const monto = document.getElementById('egreso-monto').value;
-            const comprobante = document.getElementById('egreso-comprobante').value;
-            const archivo = document.getElementById('egreso-archivo').files[0];
-            let linkArchivo = '';
+            guardando = true;
+            setLoading('btn-guardar-egreso', true);
             
-            if (archivo) {
-                try {
-                    if (archivo.size > 10 * 1024 * 1024) {
-                        mostrarMensaje('egreso-mensaje', 'El archivo es demasiado grande (máx 10MB)', 'warning');
-                        return false;
-                    }
-                    const extension = archivo.name.split('.').pop();
-                    const fileName = `${fecha.replace(/-/g, '')}_${rubro.replace(/ /g, '_')}_${comprobante || 'sincomp'}.${extension}`;
-                    const metadata = { name: fileName, parents: [DRIVE_FOLDER_ID] };
-                    const formData = new FormData();
-                    formData.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-                    formData.append('file', archivo);
-                    
-                    const uploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink', {
-                        method: 'POST',
-                        headers: { 'Authorization': `Bearer ${accessToken}` },
-                        body: formData
-                    });
-                    
-                    if (uploadRes.ok) {
-                        const data = await uploadRes.json();
-                        linkArchivo = data.webViewLink || `https://drive.google.com/file/d/${data.id}/view`;
-                    } else { console.warn('Subida fallida'); }
-                } catch(e) { console.error('Error al subir archivo:', e); }
-            }
-            
-            const values = [[fecha, rubro, detalle, comprobante, monto, linkArchivo, currentUser, new Date().toISOString()]];
             try {
+                const fecha = document.getElementById('egreso-fecha').value;
+                const rubro = document.getElementById('egreso-rubro').value;
+                const detalle = document.getElementById('egreso-detalle').value;
+                const monto = document.getElementById('egreso-monto').value;
+                const comprobante = document.getElementById('egreso-comprobante').value;
+                const archivo = document.getElementById('egreso-archivo').files[0];
+                
+                if (!fecha || !rubro || !monto) { alert('Completá los campos obligatorios'); return false; }
+                
+                let linkArchivo = '';
+                if (archivo) {
+                    linkArchivo = await subirArchivoADrive(archivo, DRIVE_FOLDER_ID_EGRESOS, 'egreso');
+                }
+                
+                const values = [[fecha, rubro, detalle, comprobante, monto, linkArchivo, currentUser, new Date().toISOString()]];
                 const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/EGRESOS:append?valueInputOption=USER_ENTERED`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ values })
                 });
+                
                 if (res.ok) {
                     mostrarMensaje('egreso-mensaje', '✅ Egreso guardado correctamente' + (linkArchivo ? ' (archivo adjunto)' : ''), 'success');
                     document.getElementById('form-egreso').reset();
+                    document.getElementById('egreso-archivo').value = '';
                     cargarSaldos();
                 } else { mostrarMensaje('egreso-mensaje', '❌ Error al guardar', 'error'); }
             } catch(e) { mostrarMensaje('egreso-mensaje', '❌ Error de conexión', 'error'); }
+            finally {
+                guardando = false;
+                setLoading('btn-guardar-egreso', false);
+            }
             return false;
         }
 
         // ========== INICIALIZACIÓN ==========
         window.onload = () => {
+            document.getElementById('periodo-categoria').addEventListener('change', cargarEjecucionEnTabla);
             if (!verificarToken()) {
                 handleAuthRedirect();
             }
