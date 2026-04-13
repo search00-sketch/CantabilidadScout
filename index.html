@@ -65,7 +65,6 @@
         .btn-sm { padding: 8px 12px; font-size: 0.85rem; }
         .btn:disabled { opacity: 0.6; cursor: not-allowed; }
         
-        /* Loading spinner */
         .loading-spinner {
             display: inline-block;
             width: 16px;
@@ -78,7 +77,6 @@
         }
         @keyframes spin { to { transform: rotate(360deg); } }
         
-        /* Navegación responsive */
         .nav-bar {
             background: var(--marron);
             padding: 10px 0;
@@ -90,12 +88,7 @@
             z-index: 100;
         }
         .nav-bar .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
-        .nav-links { 
-            display: flex; 
-            gap: 8px; 
-            flex-wrap: wrap; 
-            justify-content: center;
-        }
+        .nav-links { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
         .nav-links a {
             color: var(--blanco);
             text-decoration: none;
@@ -107,31 +100,13 @@
         }
         .nav-links a:hover { background: var(--amarillo); color: var(--marron); }
         
-        .grid { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); 
-            gap: 12px; 
-            margin-bottom: 15px; 
-        }
-        .stat-card { 
-            background: var(--blanco); 
-            border: 2px solid var(--marron); 
-            border-radius: 10px; 
-            padding: 12px;
-            text-align: center;
-        }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 15px; }
+        .stat-card { background: var(--blanco); border: 2px solid var(--marron); border-radius: 10px; padding: 12px; text-align: center; }
         .stat-number { font-size: 1.5rem; font-weight: bold; color: var(--negro); }
         .stat-card small { font-size: 0.7rem; }
         
         .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-        table { 
-            width: 100%; 
-            border-collapse: collapse; 
-            background: var(--blanco); 
-            border: 2px solid var(--marron);
-            font-size: 0.85rem;
-            min-width: 600px;
-        }
+        table { width: 100%; border-collapse: collapse; background: var(--blanco); border: 2px solid var(--marron); font-size: 0.85rem; min-width: 600px; }
         th, td { padding: 10px 8px; text-align: left; }
         th { background: var(--marron); color: var(--blanco); }
         td { border-bottom: 1px solid var(--amarillo); }
@@ -386,11 +361,8 @@
                         </div>
                         <div class="table-responsive mt-10">
                             <table id="tabla-ejecucion">
-                                <thead>
-                                    <tr><th>Categoría</th><th>Presupuesto</th><th>Ejecutado</th><th>Diferencia</th><th>%</th></thead>
-                                <tbody id="tabla-ejecucion-body">
-                                    <tr><td colspan="5" class="text-center">Seleccioná un período y hacé clic en "Descargar Excel" para ver los datos</td></tr>
-                                </tbody>
+                                <thead><tr><th>Categoría</th><th>Presupuesto</th><th>Ejecutado</th><th>Diferencia</th><th>%</th></tr></thead>
+                                <tbody id="tabla-ejecucion-body"><tr><td colspan="5" class="text-center">Seleccioná un período y hacé clic en "Descargar Excel" para ver los datos</td></tr></tbody>
                             </table>
                         </div>
                     </div>
@@ -400,12 +372,13 @@
     </div>
 
     <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script>
         // ========== CONFIGURACIÓN ==========
         const CLIENT_ID = '616578436911-bel2eqgcvtc0j6hldhtogis5av7vvsu3.apps.googleusercontent.com';
         const SPREADSHEET_ID = '1-1ADHfkdnuWmPy4Fnuxg9ULqm5xGb1pO-crgqWukFi0';
         const DRIVE_FOLDER_ID_EGRESOS = '14wcPHlhFWG8oM9MBK9ad4AwuJDwR7yey';
-        const DRIVE_FOLDER_ID_INGRESOS = '1fi0HjXVY8y9KIrqB3G8bscp7wPxGBZ_1'; // <-- CAMBIAR POR EL ID REAL
+        const DRIVE_FOLDER_ID_INGRESOS = '1fi0HjXVY8y9KIrqB3G8bscp7wPxGBZ_1';
         
         const getRedirectUri = () => {
             let uri = window.location.origin + window.location.pathname;
@@ -418,6 +391,7 @@
         let beneficiariosData = [];
         let categoriasData = [];
         let guardando = false;
+        let contadorComprobante = 1;
 
         // ========== FUNCIONES UI ==========
         function toggleMenu() {
@@ -640,6 +614,166 @@
             setTimeout(() => msgDiv.classList.add('hidden'), 4000);
         }
 
+        // ========== GENERAR PDF DEL COMPROBANTE ==========
+        async function generarComprobantePDF(datos) {
+            const html = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>Comprobante Scout</title>
+                <style>
+                    * { margin: 0; padding: 0; box-sizing: border-box; }
+                    body {
+                        font-family: 'Segoe UI', Arial, sans-serif;
+                        background: #f5f5f5;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        min-height: 100vh;
+                        padding: 20px;
+                    }
+                    .comprobante {
+                        max-width: 400px;
+                        width: 100%;
+                        background: white;
+                        border-radius: 20px;
+                        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+                        overflow: hidden;
+                        border: 1px solid #DAA520;
+                    }
+                    .header {
+                        background: linear-gradient(135deg, #8B4513 0%, #A0522D 100%);
+                        color: white;
+                        text-align: center;
+                        padding: 25px 20px;
+                    }
+                    .logo {
+                        font-size: 2.5rem;
+                        margin-bottom: 5px;
+                    }
+                    .titulo {
+                        font-size: 1.8rem;
+                        font-weight: bold;
+                        letter-spacing: 2px;
+                    }
+                    .subtitulo {
+                        font-size: 0.8rem;
+                        opacity: 0.9;
+                        margin-top: 5px;
+                    }
+                    .contenido {
+                        padding: 25px;
+                    }
+                    .campo {
+                        margin-bottom: 15px;
+                        padding-bottom: 10px;
+                        border-bottom: 1px dashed #ddd;
+                    }
+                    .campo-label {
+                        font-size: 0.75rem;
+                        color: #8B4513;
+                        text-transform: uppercase;
+                        letter-spacing: 1px;
+                        margin-bottom: 5px;
+                    }
+                    .campo-valor {
+                        font-size: 1.1rem;
+                        font-weight: 500;
+                        color: #2C1810;
+                    }
+                    .monto {
+                        font-size: 1.8rem;
+                        font-weight: bold;
+                        color: #2C1810;
+                        text-align: center;
+                        margin: 20px 0;
+                    }
+                    .estado {
+                        text-align: center;
+                        margin: 20px 0;
+                    }
+                    .pagado {
+                        display: inline-block;
+                        background: #10b981;
+                        color: white;
+                        padding: 8px 25px;
+                        border-radius: 30px;
+                        font-weight: bold;
+                        letter-spacing: 2px;
+                    }
+                    .footer {
+                        background: #f5f5f5;
+                        padding: 15px;
+                        text-align: center;
+                        font-size: 0.7rem;
+                        color: #666;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="comprobante" id="comprobante">
+                    <div class="header">
+                        <div class="logo">🐺</div>
+                        <div class="titulo">SCOUT N°466</div>
+                        <div class="subtitulo">SAN JOSÉ OBRERO - D III - Z V</div>
+                    </div>
+                    <div class="contenido">
+                        <div class="campo">
+                            <div class="campo-label">N° COMPROBANTE</div>
+                            <div class="campo-valor">${datos.numero}</div>
+                        </div>
+                        <div class="campo">
+                            <div class="campo-label">FECHA</div>
+                            <div class="campo-valor">${datos.fecha}</div>
+                        </div>
+                        <div class="campo">
+                            <div class="campo-label">BENEFICIARIO</div>
+                            <div class="campo-valor">${datos.beneficiario}</div>
+                        </div>
+                        <div class="campo">
+                            <div class="campo-label">RAMA</div>
+                            <div class="campo-valor">${datos.rama}</div>
+                        </div>
+                        <div class="campo">
+                            <div class="campo-label">CONCEPTO</div>
+                            <div class="campo-valor">${datos.concepto}</div>
+                        </div>
+                        <div class="monto">
+                            $ ${datos.monto.toLocaleString('es-AR')}
+                        </div>
+                        <div class="estado">
+                            <span class="pagado">✅ PAGADO</span>
+                        </div>
+                    </div>
+                    <div class="footer">
+                        ¡Gracias por tu colaboración!<br>
+                        Grupo Scout San José Obrero N°466 - D III - Z V
+                    </div>
+                </div>
+                <script>
+                    setTimeout(() => {
+                        const element = document.getElementById('comprobante');
+                        html2pdf().set({
+                            margin: [0.5, 0.5, 0.5, 0.5],
+                            filename: 'comprobante_${datos.numero}.pdf',
+                            image: { type: 'jpeg', quality: 0.98 },
+                            html2canvas: { scale: 2, letterRendering: true },
+                            jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+                        }).from(element).save().then(() => {
+                            window.close();
+                        });
+                    }, 500);
+                <\/script>
+            </body>
+            </html>
+            `;
+            
+            const ventana = window.open();
+            ventana.document.write(html);
+            ventana.document.close();
+        }
+
         // ========== EJECUCIÓN POR CATEGORÍA ==========
         async function cargarEjecucionEnTabla() {
             const periodo = document.getElementById('periodo-categoria').value;
@@ -651,7 +785,6 @@
                 const egresosData = await egresosRes.json();
                 const egresos = egresosData.values || [];
                 
-                // Calcular ejecutado por categoría
                 const ejecutado = {};
                 egresos.slice(1).forEach(row => {
                     const fecha = row[0]?.split('T')[0] || '';
@@ -662,13 +795,11 @@
                     }
                 });
                 
-                // Presupuestos desde CATEGORIAS
                 const presupuestos = {};
                 categoriasData.forEach(cat => {
                     presupuestos[cat[1]] = parseFloat(cat[3]) || 0;
                 });
                 
-                // Combinar y mostrar
                 const todasCategorias = new Set([...Object.keys(presupuestos), ...Object.keys(ejecutado)]);
                 const datos = [];
                 for (let cat of todasCategorias) {
@@ -855,19 +986,33 @@
                 const monto = document.getElementById('ingreso-monto').value;
                 const comprobante = document.getElementById('ingreso-comprobante').value;
                 const detalle = document.getElementById('ingreso-detalle').value;
-                const beneficiario = document.getElementById('ingreso-beneficiario').value;
+                const beneficiarioId = document.getElementById('ingreso-beneficiario').value;
                 const cuota = document.getElementById('ingreso-cuota')?.value || '';
                 const archivo = document.getElementById('ingreso-archivo').files[0];
                 
                 if (!fecha || !rubro || !monto) { alert('Completá los campos obligatorios'); return false; }
                 
-                // Subir comprobante a Drive
+                // Obtener datos del beneficiario
+                let beneficiarioNombre = 'General';
+                let beneficiarioRama = '-';
+                if (beneficiarioId) {
+                    const ben = beneficiariosData.find(b => b[0] === beneficiarioId);
+                    if (ben) {
+                        beneficiarioNombre = `${ben[1]}, ${ben[2]}`;
+                        beneficiarioRama = ben[3];
+                    }
+                }
+                
+                // Subir archivo a Drive si existe
                 let linkArchivo = '';
                 if (archivo) {
                     linkArchivo = await subirArchivoADrive(archivo, DRIVE_FOLDER_ID_INGRESOS, 'ingreso');
                 }
                 
-                const values = [[fecha, detalle, beneficiario || '', rubro === 'Cuota' ? cuota : rubro, monto, comprobante, linkArchivo, currentUser, new Date().toISOString()]];
+                // Generar número de comprobante único
+                const numComprobante = `${fecha.replace(/-/g, '')}-${String(contadorComprobante++).padStart(4, '0')}`;
+                
+                const values = [[fecha, detalle, beneficiarioId || '', rubro === 'Cuota' ? cuota : rubro, monto, comprobante, linkArchivo, currentUser, new Date().toISOString()]];
                 const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/INGRESOS_unitario:append?valueInputOption=USER_ENTERED`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
@@ -875,7 +1020,20 @@
                 });
                 
                 if (res.ok) {
-                    mostrarMensaje('ingreso-mensaje', '✅ Ingreso guardado correctamente' + (linkArchivo ? ' (comprobante adjunto)' : ''), 'success');
+                    mostrarMensaje('ingreso-mensaje', '✅ Ingreso guardado correctamente', 'success');
+                    
+                    // Generar comprobante PDF
+                    const datosComprobante = {
+                        numero: numComprobante,
+                        fecha: new Date(fecha).toLocaleDateString('es-AR'),
+                        beneficiario: beneficiarioNombre,
+                        rama: beneficiarioRama,
+                        concepto: rubro === 'Cuota' ? cuota : rubro,
+                        monto: parseFloat(monto)
+                    };
+                    
+                    await generarComprobantePDF(datosComprobante);
+                    
                     document.getElementById('form-ingreso').reset();
                     document.getElementById('campos-cuota').classList.add('hidden');
                     document.getElementById('ingreso-archivo').value = '';
