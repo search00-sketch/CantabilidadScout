@@ -316,7 +316,9 @@
                     <div class="card">
                         <div class="table-responsive">
                             <table id="tabla-deudores">
-                                <thead><tr><th>Beneficiario</th><th>Rama</th><th>Cuota</th><th>Camp. Invierno</th><th>Camp. Verano</th><th>Pagado</th><th>Pendiente</th></tr></thead>
+                                <thead>
+                                    <tr><th>Beneficiario</th><th>Rama</th><th>Cuota</th><th>Camp. Invierno</th><th>Camp. Verano</th><th>Pagado</th><th>Pendiente</th>
+                                </thead>
                                 <tbody></tbody>
                             </table>
                         </div>
@@ -782,7 +784,7 @@
                             jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
                         }).from(element).save();
                     }
-                </script>
+                <\/script>
             </body>
             </html>
             `;
@@ -1010,7 +1012,6 @@
                 
                 if (!fecha || !rubro || !monto) { alert('Completá los campos obligatorios'); return false; }
                 
-                // Obtener datos del beneficiario
                 let beneficiarioNombre = 'General';
                 let beneficiarioRama = '-';
                 if (beneficiarioId) {
@@ -1021,19 +1022,13 @@
                     }
                 }
                 
-                // Subir archivo a Drive si existe
                 let linkArchivo = '';
                 if (archivo) {
                     linkArchivo = await subirArchivoADrive(archivo, DRIVE_FOLDER_ID_INGRESOS, 'ingreso');
                 }
                 
-                // Generar número de comprobante único
                 const numComprobante = `${fecha.replace(/-/g, '')}-${String(contadorComprobante++).padStart(4, '0')}`;
-                
-                // Fecha formateada correctamente (sin problemas de zona horaria)
-                const fechaFormateada = fecha.split('-').reverse().join('/'); // 2026-04-13 -> 13/04/2026
-                
-                // Guardar en Sheets - Columna C es el nombre del beneficiario
+                const fechaFormateada = fecha.split('-').reverse().join('/');
                 const nombreBeneficiario = beneficiarioId ? beneficiarioNombre : '';
                 const values = [[fecha, detalle, nombreBeneficiario, rubro === 'Cuota' ? cuota : rubro, monto, comprobante, linkArchivo, currentUser, new Date().toISOString()]];
                 const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/INGRESOS_unitario:append?valueInputOption=USER_ENTERED`, {
@@ -1045,7 +1040,6 @@
                 if (res.ok) {
                     mostrarMensaje('ingreso-mensaje', '✅ Ingreso guardado correctamente', 'success');
                     
-                    // Generar comprobante PDF con la fecha corregida
                     const datosComprobante = {
                         numero: numComprobante,
                         fecha: fechaFormateada,
