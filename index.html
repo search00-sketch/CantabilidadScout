@@ -316,9 +316,7 @@
                     <div class="card">
                         <div class="table-responsive">
                             <table id="tabla-deudores">
-                                <thead>
-                                    <tr><th>Beneficiario</th><th>Rama</th><th>Cuota</th><th>Camp. Invierno</th><th>Camp. Verano</th><th>Pagado</th><th>Pendiente</th>
-                                </thead>
+                                <thead><tr><th>Beneficiario</th><th>Rama</th><th>Cuota</th><th>Camp. Invierno</th><th>Camp. Verano</th><th>Pagado</th><th>Pendiente</th></thead>
                                 <tbody></tbody>
                             </table>
                         </div>
@@ -616,83 +614,189 @@
             setTimeout(() => msgDiv.classList.add('hidden'), 4000);
         }
 
-        // ========== GENERAR PDF DEL COMPROBANTE ==========
+        // ========== GENERAR PDF DEL COMPROBANTE (VENTANA ABIERTA PARA IMPRIMIR/COMPARTIR) ==========
         async function generarComprobantePDF(datos) {
-            const element = document.createElement('div');
-            element.style.position = 'absolute';
-            element.style.left = '-9999px';
-            element.style.top = '-9999px';
-            element.innerHTML = `
-            <div style="
-                max-width: 400px;
-                margin: 0 auto;
-                background: white;
-                border-radius: 20px;
-                overflow: hidden;
-                border: 1px solid #DAA520;
-                font-family: 'Segoe UI', Arial, sans-serif;
-            ">
-                <div style="
-                    background: linear-gradient(135deg, #8B4513 0%, #A0522D 100%);
-                    color: white;
-                    text-align: center;
-                    padding: 25px 20px;
-                ">
-                    <img src="https://images.squidge.org/images/2026/04/13/logo-grupo.md.jpeg" style="width: 60px; height: auto; margin-bottom: 10px; border-radius: 10px;">
-                    <div style="font-size: 1.5rem; font-weight: bold; letter-spacing: 2px;">SCOUT N°466</div>
-                    <div style="font-size: 0.8rem; opacity: 0.9; margin-top: 5px;">SAN JOSÉ OBRERO - D III - Z V</div>
+            const htmlContent = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>Comprobante Scout</title>
+                <style>
+                    * { margin: 0; padding: 0; box-sizing: border-box; }
+                    body {
+                        font-family: 'Segoe UI', Arial, sans-serif;
+                        background: #f5f5f5;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        min-height: 100vh;
+                        padding: 20px;
+                    }
+                    .comprobante {
+                        max-width: 400px;
+                        width: 100%;
+                        background: white;
+                        border-radius: 20px;
+                        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+                        overflow: hidden;
+                        border: 1px solid #DAA520;
+                    }
+                    .header {
+                        background: linear-gradient(135deg, #8B4513 0%, #A0522D 100%);
+                        color: white;
+                        text-align: center;
+                        padding: 25px 20px;
+                    }
+                    .logo-img {
+                        width: 60px;
+                        height: auto;
+                        margin-bottom: 10px;
+                        border-radius: 10px;
+                    }
+                    .titulo {
+                        font-size: 1.5rem;
+                        font-weight: bold;
+                        letter-spacing: 2px;
+                    }
+                    .subtitulo {
+                        font-size: 0.8rem;
+                        opacity: 0.9;
+                        margin-top: 5px;
+                    }
+                    .contenido {
+                        padding: 25px;
+                    }
+                    .campo {
+                        margin-bottom: 15px;
+                        padding-bottom: 10px;
+                        border-bottom: 1px dashed #ddd;
+                    }
+                    .campo-label {
+                        font-size: 0.75rem;
+                        color: #8B4513;
+                        text-transform: uppercase;
+                        letter-spacing: 1px;
+                        margin-bottom: 5px;
+                    }
+                    .campo-valor {
+                        font-size: 1.1rem;
+                        font-weight: 500;
+                        color: #2C1810;
+                    }
+                    .monto {
+                        font-size: 1.8rem;
+                        font-weight: bold;
+                        color: #2C1810;
+                        text-align: center;
+                        margin: 20px 0;
+                    }
+                    .estado {
+                        text-align: center;
+                        margin: 20px 0;
+                    }
+                    .pagado {
+                        display: inline-block;
+                        background: #10b981;
+                        color: white;
+                        padding: 8px 25px;
+                        border-radius: 30px;
+                        font-weight: bold;
+                        letter-spacing: 2px;
+                    }
+                    .footer {
+                        background: #f5f5f5;
+                        padding: 15px;
+                        text-align: center;
+                        font-size: 0.7rem;
+                        color: #666;
+                    }
+                    .btn-print {
+                        display: block;
+                        width: calc(100% - 40px);
+                        margin: 20px;
+                        padding: 12px;
+                        background: #8B4513;
+                        color: white;
+                        border: none;
+                        border-radius: 8px;
+                        font-size: 1rem;
+                        cursor: pointer;
+                        text-align: center;
+                    }
+                    .btn-print:hover {
+                        background: #A0522D;
+                    }
+                    @media print {
+                        body {
+                            background: white;
+                            padding: 0;
+                            margin: 0;
+                        }
+                        .btn-print {
+                            display: none;
+                        }
+                        .comprobante {
+                            box-shadow: none;
+                            margin: 0 auto;
+                        }
+                    }
+                </style>
+            </head>
+            <body>
+                <div>
+                    <div class="comprobante">
+                        <div class="header">
+                            <img src="https://images.squidge.org/images/2026/04/13/logo-grupo.md.jpeg" class="logo-img" alt="Logo">
+                            <div class="titulo">SCOUT N°466</div>
+                            <div class="subtitulo">SAN JOSÉ OBRERO - D III - Z V</div>
+                        </div>
+                        <div class="contenido">
+                            <div class="campo">
+                                <div class="campo-label">N° COMPROBANTE</div>
+                                <div class="campo-valor">${datos.numero}</div>
+                            </div>
+                            <div class="campo">
+                                <div class="campo-label">FECHA</div>
+                                <div class="campo-valor">${datos.fecha}</div>
+                            </div>
+                            <div class="campo">
+                                <div class="campo-label">BENEFICIARIO</div>
+                                <div class="campo-valor">${datos.beneficiario}</div>
+                            </div>
+                            <div class="campo">
+                                <div class="campo-label">RAMA</div>
+                                <div class="campo-valor">${datos.rama}</div>
+                            </div>
+                            <div class="campo">
+                                <div class="campo-label">CONCEPTO</div>
+                                <div class="campo-valor">${datos.concepto}</div>
+                            </div>
+                            <div class="monto">
+                                $ ${datos.monto.toLocaleString('es-AR')}
+                            </div>
+                            <div class="estado">
+                                <span class="pagado">✅ PAGADO</span>
+                            </div>
+                        </div>
+                        <div class="footer">
+                            ¡Gracias por tu colaboración!<br>
+                            Grupo Scout San José Obrero N°466 - D III - Z V
+                        </div>
+                    </div>
+                    <button class="btn-print" onclick="window.print()">🖨️ Imprimir / Guardar como PDF</button>
                 </div>
-                <div style="padding: 25px;">
-                    <div style="margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px dashed #ddd;">
-                        <div style="font-size: 0.75rem; color: #8B4513; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px;">N° COMPROBANTE</div>
-                        <div style="font-size: 1.1rem; font-weight: 500; color: #2C1810;">${datos.numero}</div>
-                    </div>
-                    <div style="margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px dashed #ddd;">
-                        <div style="font-size: 0.75rem; color: #8B4513; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px;">FECHA</div>
-                        <div style="font-size: 1.1rem; font-weight: 500; color: #2C1810;">${datos.fecha}</div>
-                    </div>
-                    <div style="margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px dashed #ddd;">
-                        <div style="font-size: 0.75rem; color: #8B4513; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px;">BENEFICIARIO</div>
-                        <div style="font-size: 1.1rem; font-weight: 500; color: #2C1810;">${datos.beneficiario}</div>
-                    </div>
-                    <div style="margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px dashed #ddd;">
-                        <div style="font-size: 0.75rem; color: #8B4513; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px;">RAMA</div>
-                        <div style="font-size: 1.1rem; font-weight: 500; color: #2C1810;">${datos.rama}</div>
-                    </div>
-                    <div style="margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px dashed #ddd;">
-                        <div style="font-size: 0.75rem; color: #8B4513; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px;">CONCEPTO</div>
-                        <div style="font-size: 1.1rem; font-weight: 500; color: #2C1810;">${datos.concepto}</div>
-                    </div>
-                    <div style="font-size: 1.8rem; font-weight: bold; color: #2C1810; text-align: center; margin: 20px 0;">
-                        $ ${datos.monto.toLocaleString('es-AR')}
-                    </div>
-                    <div style="text-align: center; margin: 20px 0;">
-                        <span style="display: inline-block; background: #10b981; color: white; padding: 8px 25px; border-radius: 30px; font-weight: bold; letter-spacing: 2px;">✅ PAGADO</span>
-                    </div>
-                </div>
-                <div style="background: #f5f5f5; padding: 15px; text-align: center; font-size: 0.7rem; color: #666;">
-                    ¡Gracias por tu colaboración!<br>
-                    Grupo Scout San José Obrero N°466 - D III - Z V
-                </div>
-            </div>
+                <script>
+                    console.log('Comprobante generado correctamente');
+                </script>
+            </body>
+            </html>
             `;
             
-            document.body.appendChild(element);
-            
-            try {
-                const opt = {
-                    margin: [0.5, 0.5, 0.5, 0.5],
-                    filename: `comprobante_${datos.numero}.pdf`,
-                    image: { type: 'jpeg', quality: 0.98 },
-                    html2canvas: { scale: 2, letterRendering: true },
-                    jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
-                };
-                await html2pdf().set(opt).from(element).save();
-            } catch(e) {
-                console.error('Error al generar PDF:', e);
-                mostrarMensaje('ingreso-mensaje', '⚠️ El ingreso se guardó pero no se pudo generar el PDF', 'warning');
-            }
-            document.body.removeChild(element);
+            // Abrir ventana nueva con el comprobante
+            const ventana = window.open();
+            ventana.document.write(htmlContent);
+            ventana.document.close();
         }
 
         // ========== EJECUCIÓN POR CATEGORÍA ==========
@@ -736,7 +840,7 @@
                 tbody.innerHTML = '';
                 datos.forEach(d => {
                     let diffClass = d[3] >= 0 ? 'text-success' : 'text-danger';
-                    tbody.innerHTML += `<tr><td>${d[0]}</td>}&#xA;                        <td class="${diffClass}">$${d[3].toLocaleString()}${d[4]}%`;
+                    tbody.innerHTML += `<tr><td>${d[0]}</td><td>$${d[1].toLocaleString()}</td><td>$${d[2].toLocaleString()}</td><td class="${diffClass}">$${d[3].toLocaleString()}</td><td>${d[4]}%</td></tr>`;
                 });
             } catch(e) { console.error(e); }
         }
@@ -923,27 +1027,30 @@
                     }
                 }
                 
+                // Subir archivo adjunto a Drive (comprobante escaneado)
                 let linkArchivo = '';
                 if (archivo) {
                     linkArchivo = await subirArchivoADrive(archivo, DRIVE_FOLDER_ID_INGRESOS, 'ingreso');
+                    if (linkArchivo) {
+                        mostrarMensaje('ingreso-mensaje', '📎 Archivo adjunto subido correctamente', 'success');
+                    }
                 }
                 
                 const numComprobante = `${fecha.replace(/-/g, '')}-${String(contadorComprobante++).padStart(4, '0')}`;
                 const numeroComprobanteFinal = comprobanteManual || numComprobante;
                 const fechaFormateada = fecha.split('-').reverse().join('/');
                 
-                // Detalle completo: Beneficiario (Rama) + detalle adicional
+                // Detalle completo
                 const detalleCompleto = `${beneficiarioNombre} (${beneficiarioRama})${detalleAdicional ? ' - ' + detalleAdicional : ''}`;
                 
-                // ===== FORMATO CORRECTO DE INGRESOS_unitario =====
-                // A: Fecha | B: Detalle | C: Rubro | D: N° Comprobante | E: Ingreso | F: Egreso
+                // Guardar en INGRESOS_unitario
                 const values = [[
                     fecha,                      // A: Fecha
-                    detalleCompleto,            // B: Detalle (Beneficiario + Rama)
+                    detalleCompleto,            // B: Detalle
                     rubro === 'Cuota' ? cuota : rubro,  // C: Rubro
                     numeroComprobanteFinal,     // D: N° Comprobante
                     monto,                      // E: Ingreso
-                    ''                          // F: Egreso (vacío para ingresos)
+                    ''                          // F: Egreso
                 ]];
                 
                 const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/INGRESOS_unitario:append?valueInputOption=USER_ENTERED`, {
@@ -955,6 +1062,7 @@
                 if (res.ok) {
                     mostrarMensaje('ingreso-mensaje', '✅ Ingreso guardado correctamente', 'success');
                     
+                    // Generar comprobante PDF
                     const datosComprobante = {
                         numero: numeroComprobanteFinal,
                         fecha: fechaFormateada,
@@ -1002,9 +1110,11 @@
                 let linkArchivo = '';
                 if (archivo) {
                     linkArchivo = await subirArchivoADrive(archivo, DRIVE_FOLDER_ID_EGRESOS, 'egreso');
+                    if (linkArchivo) {
+                        mostrarMensaje('egreso-mensaje', '📎 Archivo adjunto subido correctamente', 'success');
+                    }
                 }
                 
-                // Formato EGRESOS: Fecha, Rubro, Detalle, N° Comprobante, Monto, LinkFoto, Usuario, FechaHora
                 const values = [[fecha, rubro, detalle, comprobante, monto, linkArchivo, currentUser, new Date().toISOString()]];
                 const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/EGRESOS:append?valueInputOption=USER_ENTERED`, {
                     method: 'POST',
