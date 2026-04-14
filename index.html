@@ -374,6 +374,7 @@
     </div>
 
     <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script>
         // ========== CONFIGURACIÓN ==========
         const CLIENT_ID = '616578436911-bel2eqgcvtc0j6hldhtogis5av7vvsu3.apps.googleusercontent.com';
@@ -643,152 +644,94 @@
             setTimeout(() => msgDiv.classList.add('hidden'), 4000);
         }
 
-        // ========== ABRIR VENTANA DE COMPROBANTE PARA IMPRIMIR ==========
-        function abrirComprobante(datos) {
-            const htmlContent = `<!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="UTF-8">
-                <title>Comprobante Scout</title>
-                <style>
-                    * { margin: 0; padding: 0; box-sizing: border-box; }
-                    body {
-                        font-family: 'Segoe UI', Arial, sans-serif;
-                        background: #f5f5f5;
-                        display: flex;
-                        justify-content: center;
-                        align-items: center;
-                        min-height: 100vh;
-                        padding: 20px;
-                    }
-                    .comprobante {
-                        max-width: 400px;
-                        width: 100%;
-                        background: white;
-                        border-radius: 20px;
-                        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-                        overflow: hidden;
-                        border: 1px solid #DAA520;
-                    }
-                    .header {
-                        background: linear-gradient(135deg, #8B4513 0%, #A0522D 100%);
-                        color: white;
-                        text-align: center;
-                        padding: 25px 20px;
-                    }
-                    .logo-img {
-                        width: 60px;
-                        height: auto;
-                        margin-bottom: 10px;
-                        border-radius: 10px;
-                    }
-                    .titulo {
-                        font-size: 1.5rem;
-                        font-weight: bold;
-                        letter-spacing: 2px;
-                    }
-                    .subtitulo {
-                        font-size: 0.8rem;
-                        opacity: 0.9;
-                        margin-top: 5px;
-                    }
-                    .contenido {
-                        padding: 25px;
-                    }
-                    .campo {
-                        margin-bottom: 15px;
-                        padding-bottom: 10px;
-                        border-bottom: 1px dashed #ddd;
-                    }
-                    .campo-label {
-                        font-size: 0.75rem;
-                        color: #8B4513;
-                        text-transform: uppercase;
-                        letter-spacing: 1px;
-                        margin-bottom: 5px;
-                    }
-                    .campo-valor {
-                        font-size: 1.1rem;
-                        font-weight: 500;
-                        color: #2C1810;
-                    }
-                    .monto {
-                        font-size: 1.8rem;
-                        font-weight: bold;
-                        color: #2C1810;
-                        text-align: center;
-                        margin: 20px 0;
-                    }
-                    .estado {
-                        text-align: center;
-                        margin: 20px 0;
-                    }
-                    .pagado {
-                        display: inline-block;
-                        background: #10b981;
-                        color: white;
-                        padding: 8px 25px;
-                        border-radius: 30px;
-                        font-weight: bold;
-                        letter-spacing: 2px;
-                    }
-                    .footer {
-                        background: #f5f5f5;
-                        padding: 15px;
-                        text-align: center;
-                        font-size: 0.7rem;
-                        color: #666;
-                    }
-                    .btn-print {
-                        display: block;
-                        width: calc(100% - 40px);
-                        margin: 20px;
-                        padding: 12px;
-                        background: #8B4513;
-                        color: white;
-                        border: none;
-                        border-radius: 8px;
-                        font-size: 1rem;
-                        cursor: pointer;
-                        text-align: center;
-                    }
-                    .btn-print:hover { background: #A0522D; }
-                    @media print {
-                        body { background: white; padding: 0; margin: 0; }
-                        .btn-print { display: none; }
-                        .comprobante { box-shadow: none; margin: 0 auto; }
-                    }
-                </style>
-            </head>
-            <body>
-                <div>
-                    <div class="comprobante">
-                        <div class="header">
-                            <img src="https://images.squidge.org/images/2026/04/13/logo-grupo.md.jpeg" class="logo-img" alt="Logo">
-                            <div class="titulo">SCOUT N°466</div>
-                            <div class="subtitulo">SAN JOSÉ OBRERO - D III - Z V</div>
-                        </div>
-                        <div class="contenido">
-                            <div class="campo"><div class="campo-label">N° COMPROBANTE</div><div class="campo-valor">${datos.numero}</div></div>
-                            <div class="campo"><div class="campo-label">FECHA</div><div class="campo-valor">${datos.fecha}</div></div>
-                            <div class="campo"><div class="campo-label">BENEFICIARIO</div><div class="campo-valor">${datos.beneficiario}</div></div>
-                            <div class="campo"><div class="campo-label">RAMA</div><div class="campo-valor">${datos.rama}</div></div>
-                            <div class="campo"><div class="campo-label">CONCEPTO</div><div class="campo-valor">${datos.concepto}</div></div>
-                            <div class="monto">$ ${datos.monto.toLocaleString('es-AR')}</div>
-                            <div class="estado"><span class="pagado">✅ PAGADO</span></div>
-                        </div>
-                        <div class="footer">¡Gracias por tu colaboración!<br>Grupo Scout San José Obrero N°466 - D III - Z V</div>
-                    </div>
-                    <button class="btn-print" onclick="window.print()">🖨️ Imprimir / Guardar como PDF</button>
+        // ========== GENERAR Y SUBIR IMAGEN DEL COMPROBANTE A DRIVE ==========
+        async function generarYSubirImagen(datos) {
+            // Crear elemento temporal para el comprobante
+            const elemento = document.createElement('div');
+            elemento.style.position = 'absolute';
+            elemento.style.left = '-9999px';
+            elemento.style.top = '-9999px';
+            elemento.style.backgroundColor = 'white';
+            elemento.style.padding = '20px';
+            elemento.style.width = '400px';
+            elemento.innerHTML = `
+            <div style="max-width:400px;margin:0 auto;background:white;border-radius:20px;overflow:hidden;border:1px solid #DAA520;font-family:'Segoe UI',Arial,sans-serif">
+                <div style="background:linear-gradient(135deg,#8B4513 0%,#A0522D 100%);color:white;text-align:center;padding:25px 20px">
+                    <img src="https://images.squidge.org/images/2026/04/13/logo-grupo.md.jpeg" style="width:60px;height:auto;margin-bottom:10px;border-radius:10px">
+                    <div style="font-size:1.5rem;font-weight:bold;letter-spacing:2px">SCOUT N°466</div>
+                    <div style="font-size:0.8rem;opacity:0.9;margin-top:5px">SAN JOSÉ OBRERO - D III - Z V</div>
                 </div>
-            </body>
-            </html>`;
-            const ventana = window.open();
-            ventana.document.write(htmlContent);
-            ventana.document.close();
+                <div style="padding:25px">
+                    <div style="margin-bottom:15px;padding-bottom:10px;border-bottom:1px dashed #ddd">
+                        <div style="font-size:0.75rem;color:#8B4513;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px">N° COMPROBANTE</div>
+                        <div style="font-size:1.1rem;font-weight:500;color:#2C1810">${datos.numero}</div>
+                    </div>
+                    <div style="margin-bottom:15px;padding-bottom:10px;border-bottom:1px dashed #ddd">
+                        <div style="font-size:0.75rem;color:#8B4513;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px">FECHA</div>
+                        <div style="font-size:1.1rem;font-weight:500;color:#2C1810">${datos.fecha}</div>
+                    </div>
+                    <div style="margin-bottom:15px;padding-bottom:10px;border-bottom:1px dashed #ddd">
+                        <div style="font-size:0.75rem;color:#8B4513;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px">BENEFICIARIO</div>
+                        <div style="font-size:1.1rem;font-weight:500;color:#2C1810">${datos.beneficiario}</div>
+                    </div>
+                    <div style="margin-bottom:15px;padding-bottom:10px;border-bottom:1px dashed #ddd">
+                        <div style="font-size:0.75rem;color:#8B4513;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px">RAMA</div>
+                        <div style="font-size:1.1rem;font-weight:500;color:#2C1810">${datos.rama}</div>
+                    </div>
+                    <div style="margin-bottom:15px;padding-bottom:10px;border-bottom:1px dashed #ddd">
+                        <div style="font-size:0.75rem;color:#8B4513;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px">CONCEPTO</div>
+                        <div style="font-size:1.1rem;font-weight:500;color:#2C1810">${datos.concepto}</div>
+                    </div>
+                    <div style="font-size:1.8rem;font-weight:bold;color:#2C1810;text-align:center;margin:20px 0">$ ${datos.monto.toLocaleString('es-AR')}</div>
+                    <div style="text-align:center;margin:20px 0"><span style="display:inline-block;background:#10b981;color:white;padding:8px 25px;border-radius:30px;font-weight:bold;letter-spacing:2px">✅ PAGADO</span></div>
+                </div>
+                <div style="background:#f5f5f5;padding:15px;text-align:center;font-size:0.7rem;color:#666">
+                    ¡Gracias por tu colaboración!<br>Grupo Scout San José Obrero N°466 - D III - Z V
+                </div>
+            </div>
+            `;
+            document.body.appendChild(elemento);
+            
+            try {
+                // Convertir a canvas
+                const canvas = await html2canvas(elemento, {
+                    scale: 2,
+                    backgroundColor: '#ffffff',
+                    logging: false,
+                    useCORS: true
+                });
+                
+                // Convertir canvas a blob (PNG)
+                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+                
+                // Subir a Drive
+                const fileName = `comprobante_${datos.numero}.png`;
+                const metadata = { name: fileName, parents: [DRIVE_FOLDER_ID_INGRESOS] };
+                const formData = new FormData();
+                formData.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+                formData.append('file', blob, fileName);
+                
+                const uploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${accessToken}` },
+                    body: formData
+                });
+                
+                document.body.removeChild(elemento);
+                
+                if (uploadRes.ok) {
+                    const data = await uploadRes.json();
+                    return data.webViewLink || `https://drive.google.com/file/d/${data.id}/view`;
+                }
+                return '';
+            } catch(e) {
+                document.body.removeChild(elemento);
+                console.error('Error:', e);
+                return '';
+            }
         }
 
-        // ========== SUBIR ARCHIVO A DRIVE ==========
+        // ========== SUBIR ARCHIVO ADJUNTO A DRIVE ==========
         async function subirArchivoADrive(archivo, folderId) {
             if (!archivo) return '';
             try {
@@ -1042,9 +985,27 @@
                 const detalleCompleto = `${beneficiarioNombre} (${beneficiarioRama})${detalleAdicional ? ' - ' + detalleAdicional : ''}`;
                 const concepto = rubro === 'Cuota' ? cuota : rubro;
                 
-                // FORMATO CORRECTO DE INGRESOS_unitario:
-                // A: Fecha | B: Detalle | C: Rubro | D: N° Comprobante | E: Ingreso | F: Egreso | G: Link PDF | H: Link Adjunto | I: Usuario | J: FechaHora
-                const values = [[fecha, detalleCompleto, concepto, numeroComprobanteFinal, monto, '', '', linkAdjunto, currentUser, new Date().toISOString()]];
+                // Generar y subir imagen del comprobante
+                mostrarMensaje('ingreso-mensaje', '📸 Generando comprobante...', 'success');
+                const imagenLink = await generarYSubirImagen({
+                    numero: numeroComprobanteFinal,
+                    fecha: fechaFormateada,
+                    beneficiario: beneficiarioNombre,
+                    rama: beneficiarioRama,
+                    concepto: concepto,
+                    monto: parseFloat(monto)
+                });
+                
+                if (imagenLink) {
+                    mostrarMensaje('ingreso-mensaje', '✅ Comprobante guardado en Drive', 'success');
+                    // Abrir el link para ver/compartir
+                    window.open(imagenLink, '_blank');
+                } else {
+                    mostrarMensaje('ingreso-mensaje', '⚠️ No se pudo guardar el comprobante', 'warning');
+                }
+                
+                // FORMATO CORRECTO: A:Fecha | B:Detalle | C:Rubro | D:N°Comprobante | E:Ingreso | F:Egreso | G:LinkImagen | H:LinkAdjunto | I:Usuario | J:FechaHora
+                const values = [[fecha, detalleCompleto, concepto, numeroComprobanteFinal, monto, '', imagenLink, linkAdjunto, currentUser, new Date().toISOString()]];
                 
                 const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/INGRESOS_unitario:append?valueInputOption=USER_ENTERED`, {
                     method: 'POST',
@@ -1054,18 +1015,6 @@
                 
                 if (res.ok) {
                     mostrarMensaje('ingreso-mensaje', '✅ Ingreso guardado correctamente', 'success');
-                    
-                    // Abrir comprobante para imprimir/compartir
-                    const datosComprobante = {
-                        numero: numeroComprobanteFinal,
-                        fecha: fechaFormateada,
-                        beneficiario: beneficiarioNombre,
-                        rama: beneficiarioRama,
-                        concepto: concepto,
-                        monto: parseFloat(monto)
-                    };
-                    abrirComprobante(datosComprobante);
-                    
                     document.getElementById('form-ingreso').reset();
                     document.getElementById('campos-beneficiario').classList.add('hidden');
                     document.getElementById('campo-cuota').classList.add('hidden');
