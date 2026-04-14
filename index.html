@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>🐺 Scout SJO N°466 - Sistema de Gestión</title>
+    <title>⚜️ Scout SJO N°466 - Sistema de Gestión</title>
     <style>
         :root {
             --amarillo: #FFD700;
@@ -162,7 +162,7 @@
     <div class="container" id="app">
         <div id="login-screen" class="login-container">
             <div class="login-header">
-                <img src="https://images.squidge.org/images/2026/04/13/logo-grupo.md.jpeg" style="width: 100px; margin-bottom: 10px; border-radius: 10px;">
+                <div style="font-size: 3rem;">⚜️</div>
                 <h1>Grupo Scout<br>San José Obrero N°466</h1>
                 <p>Sistema de Gestión Contable</p>
             </div>
@@ -183,7 +183,7 @@
         <div id="dashboard-screen" class="hidden">
             <div class="nav-bar">
                 <div class="container">
-                    <div><h2 style="color: var(--amarillo); font-size: 1.2rem;">🏕️ Scout SJO</h2></div>
+                    <div><h2 style="color: var(--amarillo); font-size: 1.2rem;">⚜️ Scout SJO</h2></div>
                     <button class="menu-toggle" onclick="toggleMenu()">☰ Menú</button>
                     <div class="nav-links" id="nav-links">
                         <a onclick="showSection('dashboard')">Dashboard</a>
@@ -381,7 +381,7 @@
         const SPREADSHEET_ID = '1-1ADHfkdnuWmPy4Fnuxg9ULqm5xGb1pO-crgqWukFi0';
         const DRIVE_FOLDER_ID_EGRESOS = '14wcPHlhFWG8oM9MBK9ad4AwuJDwR7yey';
         const DRIVE_FOLDER_ID_INGRESOS = '1fi0HjXVY8y9KIrqB3G8bscp7wPxGBZ_1';
-        const DRIVE_FOLDER_ID_COMPROBANTES = '1fi0HjXVY8y9KIrqB3G8bscp7wPxGBZ_1'; // Misma carpeta para comprobantes
+        const DRIVE_FOLDER_ID_COMPROBANTES = '1fi0HjXVY8y9KIrqB3G8bscp7wPxGBZ_1';
         
         const getRedirectUri = () => {
             let uri = window.location.origin + window.location.pathname;
@@ -657,7 +657,7 @@
             elemento.innerHTML = `
             <div style="max-width:400px;margin:0 auto;background:white;border-radius:20px;overflow:hidden;border:1px solid #DAA520;font-family:'Segoe UI',Arial,sans-serif">
                 <div style="background:linear-gradient(135deg,#8B4513 0%,#A0522D 100%);color:white;text-align:center;padding:25px 20px">
-                    <div style="font-size:2rem;margin-bottom:10px;">🐺</div>
+                    <div style="font-size:2rem;margin-bottom:10px;">⚜️</div>
                     <div style="font-size:1.5rem;font-weight:bold;letter-spacing:2px">SCOUT N°466</div>
                     <div style="font-size:0.8rem;opacity:0.9;margin-top:5px">SAN JOSÉ OBRERO - D III - Z V</div>
                 </div>
@@ -728,7 +728,7 @@
             }
         }
 
-        // ========== SUBIR ARCHIVO ADJUNTO A DRIVE ==========
+        // ========== SUBIR ARCHIVO A DRIVE ==========
         async function subirArchivoADrive(archivo, folderId) {
             if (!archivo) return '';
             try {
@@ -751,6 +751,22 @@
                 }
                 return '';
             } catch(e) { return ''; }
+        }
+
+        // ========== GUARDAR EN HOJA COMPROBANTES ==========
+        async function guardarLinkComprobante(numeroComprobante, linkImagen, fecha, beneficiario, monto) {
+            try {
+                const values = [[new Date().toISOString(), numeroComprobante, linkImagen, fecha, beneficiario, monto]];
+                const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/COMPROBANTES:append?valueInputOption=USER_ENTERED`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ values })
+                });
+                return res.ok;
+            } catch(e) {
+                console.error('Error guardando link:', e);
+                return false;
+            }
         }
 
         // ========== EJECUCIÓN POR CATEGORÍA ==========
@@ -995,13 +1011,15 @@
                 
                 if (imagenLink) {
                     mostrarMensaje('ingreso-mensaje', '✅ Comprobante guardado en Drive', 'success');
+                    // Guardar el link en la hoja COMPROBANTES
+                    await guardarLinkComprobante(numeroComprobanteFinal, imagenLink, fecha, beneficiarioNombre, monto);
+                    // Abrir el link para compartir
                     window.open(imagenLink, '_blank');
                 } else {
                     mostrarMensaje('ingreso-mensaje', '⚠️ No se pudo guardar el comprobante', 'warning');
                 }
                 
-                // FORMATO CORRECTO: SOLO 6 COLUMNAS A:F
-                // A:Fecha | B:Detalle | C:Rubro | D:N°Comprobante | E:Ingreso | F:Egreso
+                // Guardar en INGRESOS_unitario (solo 6 columnas)
                 const values = [[fecha, detalleCompleto, concepto, numeroComprobanteFinal, monto, '']];
                 
                 const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/INGRESOS_unitario:append?valueInputOption=USER_ENTERED`, {
