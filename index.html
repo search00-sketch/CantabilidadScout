@@ -381,6 +381,7 @@
         const SPREADSHEET_ID = '1-1ADHfkdnuWmPy4Fnuxg9ULqm5xGb1pO-crgqWukFi0';
         const DRIVE_FOLDER_ID_EGRESOS = '14wcPHlhFWG8oM9MBK9ad4AwuJDwR7yey';
         const DRIVE_FOLDER_ID_INGRESOS = '1fi0HjXVY8y9KIrqB3G8bscp7wPxGBZ_1';
+        const DRIVE_FOLDER_ID_COMPROBANTES = '1fi0HjXVY8y9KIrqB3G8bscp7wPxGBZ_1'; // Misma carpeta para comprobantes
         
         const getRedirectUri = () => {
             let uri = window.location.origin + window.location.pathname;
@@ -607,7 +608,7 @@
                     const badgeCuota = cuotaPendiente === 0 ? '<span class="badge-success">Pagado</span>' : `<span class="badge-danger">$${cuotaPendiente.toLocaleString()}</span>`;
                     const badgeInv = campInvPendiente === 0 ? '<span class="badge-success">Pagado</span>' : `<span class="badge-danger">$${campInvPendiente.toLocaleString()}</span>`;
                     const badgeVer = campVerPendiente === 0 ? '<span class="badge-success">Pagado</span>' : `<span class="badge-danger">$${campVerPendiente.toLocaleString()}</span>`;
-                    tbody.innerHTML += `<tr><td>${nombre}</td>}&#xA;                        <td>${rama}</td><td>${badgeCuota}</td><td>${badgeInv}</td><td>${badgeVer}</td><td>$${totalPagado.toLocaleString()}</td><td>$${totalPendiente.toLocaleString()}</td>`;
+                    tbody.innerHTML += `<tr><td>${nombre}${rama}${badgeCuota}${badgeInv}${badgeVer}$${totalPagado.toLocaleString()}${totalPendiente.toLocaleString()} `;
                 }
             } catch(e) { console.error(e); }
         }
@@ -646,7 +647,6 @@
 
         // ========== GENERAR Y SUBIR IMAGEN DEL COMPROBANTE A DRIVE ==========
         async function generarYSubirImagen(datos) {
-            // Crear elemento temporal para el comprobante
             const elemento = document.createElement('div');
             elemento.style.position = 'absolute';
             elemento.style.left = '-9999px';
@@ -657,7 +657,7 @@
             elemento.innerHTML = `
             <div style="max-width:400px;margin:0 auto;background:white;border-radius:20px;overflow:hidden;border:1px solid #DAA520;font-family:'Segoe UI',Arial,sans-serif">
                 <div style="background:linear-gradient(135deg,#8B4513 0%,#A0522D 100%);color:white;text-align:center;padding:25px 20px">
-                    <img src="https://images.squidge.org/images/2026/04/13/logo-grupo.md.jpeg" style="width:60px;height:auto;margin-bottom:10px;border-radius:10px">
+                    <div style="font-size:2rem;margin-bottom:10px;">🐺</div>
                     <div style="font-size:1.5rem;font-weight:bold;letter-spacing:2px">SCOUT N°466</div>
                     <div style="font-size:0.8rem;opacity:0.9;margin-top:5px">SAN JOSÉ OBRERO - D III - Z V</div>
                 </div>
@@ -671,7 +671,7 @@
                         <div style="font-size:1.1rem;font-weight:500;color:#2C1810">${datos.fecha}</div>
                     </div>
                     <div style="margin-bottom:15px;padding-bottom:10px;border-bottom:1px dashed #ddd">
-                        <div style="font-size:0.75rem;color:#8B4513;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px">BENEFICIARIO</div>
+                        <div style="font-size:0.75rem;color:#8B4513;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px">RECIBÍ DE</div>
                         <div style="font-size:1.1rem;font-weight:500;color:#2C1810">${datos.beneficiario}</div>
                     </div>
                     <div style="margin-bottom:15px;padding-bottom:10px;border-bottom:1px dashed #ddd">
@@ -693,7 +693,6 @@
             document.body.appendChild(elemento);
             
             try {
-                // Convertir a canvas
                 const canvas = await html2canvas(elemento, {
                     scale: 2,
                     backgroundColor: '#ffffff',
@@ -701,12 +700,10 @@
                     useCORS: true
                 });
                 
-                // Convertir canvas a blob (PNG)
                 const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
                 
-                // Subir a Drive
                 const fileName = `comprobante_${datos.numero}.png`;
-                const metadata = { name: fileName, parents: [DRIVE_FOLDER_ID_INGRESOS] };
+                const metadata = { name: fileName, parents: [DRIVE_FOLDER_ID_COMPROBANTES] };
                 const formData = new FormData();
                 formData.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
                 formData.append('file', blob, fileName);
@@ -798,7 +795,7 @@
                 tbody.innerHTML = '';
                 for (let d of datos) {
                     let diffClass = d[3] >= 0 ? 'text-success' : 'text-danger';
-                    tbody.innerHTML += `<tr>}&#xA;                        <td>${d[0]}</td>}<td class="${diffClass}">$${d[3].toLocaleString()}${d[4]}%`;
+                    tbody.innerHTML += `<td>${d[0]}${d[1].toLocaleString()}${d[2].toLocaleString()}<td class="${diffClass}">$${d[3].toLocaleString()}${d[4]}%`;
                 }
             } catch(e) { console.error(e); }
         }
@@ -998,14 +995,14 @@
                 
                 if (imagenLink) {
                     mostrarMensaje('ingreso-mensaje', '✅ Comprobante guardado en Drive', 'success');
-                    // Abrir el link para ver/compartir
                     window.open(imagenLink, '_blank');
                 } else {
                     mostrarMensaje('ingreso-mensaje', '⚠️ No se pudo guardar el comprobante', 'warning');
                 }
                 
-                // FORMATO CORRECTO: A:Fecha | B:Detalle | C:Rubro | D:N°Comprobante | E:Ingreso | F:Egreso | G:LinkImagen | H:LinkAdjunto | I:Usuario | J:FechaHora
-                const values = [[fecha, detalleCompleto, concepto, numeroComprobanteFinal, monto, '', imagenLink, linkAdjunto, currentUser, new Date().toISOString()]];
+                // FORMATO CORRECTO: SOLO 6 COLUMNAS A:F
+                // A:Fecha | B:Detalle | C:Rubro | D:N°Comprobante | E:Ingreso | F:Egreso
+                const values = [[fecha, detalleCompleto, concepto, numeroComprobanteFinal, monto, '']];
                 
                 const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/INGRESOS_unitario:append?valueInputOption=USER_ENTERED`, {
                     method: 'POST',
