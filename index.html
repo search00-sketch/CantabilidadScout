@@ -107,9 +107,8 @@
         
         .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
         table { width: 100%; border-collapse: collapse; background: var(--blanco); border: 2px solid var(--marron); font-size: 0.85rem; min-width: 600px; }
-        th, td { padding: 10px 8px; text-align: left; }
+        th, td { padding: 10px 8px; text-align: left; border-bottom: 1px solid var(--amarillo); }
         th { background: var(--marron); color: var(--blanco); }
-        td { border-bottom: 1px solid var(--amarillo); }
         
         .badge-success { background: #10b981; color: white; padding: 3px 8px; border-radius: 4px; display: inline-block; font-size: 0.75rem; }
         .badge-warning { background: var(--amarillo); color: var(--marron); padding: 3px 8px; border-radius: 4px; display: inline-block; font-size: 0.75rem; }
@@ -318,8 +317,20 @@
                     <div class="card">
                         <div class="table-responsive">
                             <table id="tabla-deudores">
-                                <thead><tr><th>Beneficiario</th><th>Rama</th><th>Cuota</th><th>Camp. Invierno</th><th>Camp. Verano</th><th>Total Pagado</th><th>Total Pendiente</th></thead>
-                                <tbody></tbody>
+                                <thead>
+                                    <tr>
+                                        <th>Beneficiario</th>
+                                        <th>Rama</th>
+                                        <th>Cuota</th>
+                                        <th>Camp. Invierno</th>
+                                        <th>Camp. Verano</th>
+                                        <th>Total Pagado</th>
+                                        <th>Total Pendiente</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="deudores-tbody">
+                                    <tr><td colspan="7" class="text-center">Cargando...</td></tr>
+                                </tbody>
                             </table>
                         </div>
                     </div>
@@ -359,12 +370,22 @@
                                     <option value="legal">Legal (Jul 2025 - Jun 2026)</option>
                                 </select>
                             </div>
-                            <button class="btn btn-primary" onclick="descargarEjecucionPorCategoria()">Descargar Excel</button>
+                            <button class="btn btn-primary" onclick="cargarEjecucionEnTabla()">Actualizar Tabla</button>
                         </div>
                         <div class="table-responsive mt-10">
                             <table id="tabla-ejecucion">
-                                <thead><tr><th>Categoría</th><th>Presupuesto</th><th>Ejecutado</th><th>Diferencia</th><th>%</th></tr></thead>
-                                <tbody id="tabla-ejecucion-body"><tr><td colspan="5" class="text-center">Seleccioná un período y hacé clic en "Descargar Excel" para ver los datos</tr</tbody>
+                                <thead>
+                                    <tr>
+                                        <th>Categoría</th>
+                                        <th>Presupuesto</th>
+                                        <th>Ejecutado</th>
+                                        <th>Diferencia</th>
+                                        <th>%</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabla-ejecucion-body">
+                                    <tr><td colspan="5" class="text-center">Seleccioná un período y hacé clic en "Actualizar Tabla"</td></tr>
+                                </tbody>
                             </table>
                         </div>
                     </div>
@@ -393,6 +414,7 @@
         let currentUser = null;
         let beneficiariosData = [];
         let categoriasData = [];
+        let configData = {};
         let guardando = false;
         let ultimoNumeroComprobante = 0;
 
@@ -460,16 +482,17 @@
             return false;
         }
 
-        function mostrarDashboard() {
+        async function mostrarDashboard() {
             document.getElementById('login-screen').classList.add('hidden');
             document.getElementById('dashboard-screen').classList.remove('hidden');
             document.getElementById('fecha-actual').textContent = new Date().toLocaleDateString('es-AR');
             document.getElementById('user-email').textContent = currentUser || 'Usuario';
-            cargarBeneficiarios();
-            cargarCategorias();
-            cargarSaldos();
-            cargarDeudores();
-            cargarUltimoNumeroComprobante();
+            await cargarConfiguracion();
+            await cargarBeneficiarios();
+            await cargarCategorias();
+            await cargarSaldos();
+            await cargarDeudores();
+            await cargarUltimoNumeroComprobante();
         }
 
         function logout() {
@@ -489,6 +512,34 @@
             if (s === 'deudores') cargarDeudores();
             if (s === 'dashboard') cargarSaldos();
             if (s === 'informes') cargarEjecucionEnTabla();
+        }
+
+        // ========== CARGAR CONFIGURACIÓN DESDE SHEETS ==========
+        async function cargarConfiguracion() {
+            try {
+                const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/CONFIG!A:B?key=AIzaSyDktlihiPds7AFkLSmrjV-Z0tauWCdqC7o`);
+                const data = await res.json();
+                if (data.values) {
+                    for (let i = 1; i < data.values.length; i++) {
+                        const row = data.values[i];
+                        configData[row[0]] = parseFloat(row[1]) || row[1];
+                    }
+                }
+                console.log('Configuración cargada:', configData);
+            } catch(e) { console.error('Error cargando configuración:', e); }
+        }
+
+        function getMontoConcepto(concepto) {
+            if (concepto === 'Cuota 1' || concepto === 'Cuota 2') {
+                return configData['total_anual'] / 2 || 45000;
+            }
+            if (concepto === 'Campamento Invierno') {
+                return configData['campamento_invierno'] || 60000;
+            }
+            if (concepto === 'Campamento Verano') {
+                return configData['campamento_verano'] || 500000;
+            }
+            return 0;
         }
 
         // ========== CARGAR ÚLTIMO NÚMERO DE COMPROBANTE ==========
@@ -511,15 +562,7 @@
         async function cargarSaldos() {
             if (!accessToken) return;
             try {
-                const configRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/CONFIG!A:B`, {
-                    headers: { 'Authorization': `Bearer ${accessToken}` }
-                });
-                const configData = await configRes.json();
-                let saldoInicial = 5276798.05;
-                if (configData.values) {
-                    const totalRow = configData.values.find(row => row[0] === 'total_inicial');
-                    if (totalRow) saldoInicial = parseFloat(totalRow[1]) || 5276798.05;
-                }
+                let saldoInicial = configData['total_inicial'] || 5276798.05;
                 
                 const ingresosRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/INGRESOS_unitario!A:F?key=AIzaSyDktlihiPds7AFkLSmrjV-Z0tauWCdqC7o`);
                 const ingresosData = await ingresosRes.json();
@@ -581,13 +624,19 @@
                 const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/INGRESOS_unitario!A:F?key=AIzaSyDktlihiPds7AFkLSmrjV-Z0tauWCdqC7o`);
                 const data = await res.json();
                 const ingresos = data.values || [];
-                const tbody = document.querySelector('#tabla-deudores tbody');
+                const tbody = document.getElementById('deudores-tbody');
                 tbody.innerHTML = '';
+                
+                const cuotaTotal = configData['total_anual'] || 80000;
+                const campInvTotal = configData['campamento_invierno'] || 60000;
+                const campVerTotal = configData['campamento_verano'] || 500000;
+                
                 for (let ben of beneficiariosData) {
                     const id = ben[0];
                     const nombre = `${ben[1]}, ${ben[2]}`;
                     const rama = ben[3];
                     let cuotaPagado = 0, campInvPagado = 0, campVerPagado = 0;
+                    
                     for (let i = 1; i < ingresos.length; i++) {
                         const row = ingresos[i];
                         if (row[2] === id) {
@@ -597,18 +646,28 @@
                             else if (row[3] === 'Campamento Verano') campVerPagado += monto;
                         }
                     }
-                    const cuotaTotal = 80000;
-                    const campInvTotal = 60000;
-                    const campVerTotal = 500000;
+                    
                     const cuotaPendiente = Math.max(0, cuotaTotal - cuotaPagado);
                     const campInvPendiente = Math.max(0, campInvTotal - campInvPagado);
                     const campVerPendiente = Math.max(0, campVerTotal - campVerPagado);
                     const totalPagado = cuotaPagado + campInvPagado + campVerPagado;
                     const totalPendiente = cuotaPendiente + campInvPendiente + campVerPendiente;
+                    
                     const badgeCuota = cuotaPendiente === 0 ? '<span class="badge-success">Pagado</span>' : `<span class="badge-danger">$${cuotaPendiente.toLocaleString()}</span>`;
                     const badgeInv = campInvPendiente === 0 ? '<span class="badge-success">Pagado</span>' : `<span class="badge-danger">$${campInvPendiente.toLocaleString()}</span>`;
                     const badgeVer = campVerPendiente === 0 ? '<span class="badge-success">Pagado</span>' : `<span class="badge-danger">$${campVerPendiente.toLocaleString()}</span>`;
-                    tbody.innerHTML += `<tr><td>${nombre}${rama}${badgeCuota}${badgeInv}${badgeVer}$${totalPagado.toLocaleString()}${totalPendiente.toLocaleString()} `;
+                    
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${nombre}</td>
+                            <td>${rama}</td>
+                            <td>${badgeCuota}</td>
+                            <td>${badgeInv}</td>
+                            <td>${badgeVer}</td>
+                            <td>$${totalPagado.toLocaleString()}</td>
+                            <td>$${totalPendiente.toLocaleString()}</td>
+                        </tr>
+                    `;
                 }
             } catch(e) { console.error(e); }
         }
@@ -616,7 +675,7 @@
         function filtrarDeudores() {
             const ramaFiltro = document.getElementById('filtro-rama').value;
             const estadoFiltro = document.getElementById('filtro-estado').value;
-            const filas = document.querySelectorAll('#tabla-deudores tbody tr');
+            const filas = document.querySelectorAll('#deudores-tbody tr');
             filas.forEach(fila => {
                 const rama = fila.cells[1].textContent;
                 const pendiente = parseFloat(fila.cells[6].textContent.replace(/[^0-9.-]+/g, '')) || 0;
@@ -645,7 +704,7 @@
             setTimeout(() => msgDiv.classList.add('hidden'), 4000);
         }
 
-        // ========== GENERAR Y SUBIR IMAGEN DEL COMPROBANTE A DRIVE ==========
+        // ========== GENERAR Y SUBIR IMAGEN DEL COMPROBANTE ==========
         async function generarYSubirImagen(datos) {
             const elemento = document.createElement('div');
             elemento.style.position = 'absolute';
@@ -693,15 +752,8 @@
             document.body.appendChild(elemento);
             
             try {
-                const canvas = await html2canvas(elemento, {
-                    scale: 2,
-                    backgroundColor: '#ffffff',
-                    logging: false,
-                    useCORS: true
-                });
-                
+                const canvas = await html2canvas(elemento, { scale: 2, backgroundColor: '#ffffff', logging: false });
                 const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-                
                 const fileName = `comprobante_${datos.numero}.png`;
                 const metadata = { name: fileName, parents: [DRIVE_FOLDER_ID_COMPROBANTES] };
                 const formData = new FormData();
@@ -797,21 +849,24 @@
                 });
                 
                 const todasCategorias = new Set([...Object.keys(presupuestos), ...Object.keys(ejecutado)]);
-                const datos = [];
+                const tbody = document.getElementById('tabla-ejecucion-body');
+                tbody.innerHTML = '';
+                
                 for (let cat of todasCategorias) {
                     const pres = presupuestos[cat] || 0;
                     const ejec = ejecutado[cat] || 0;
                     const diff = pres - ejec;
                     const porcentaje = pres > 0 ? ((ejec / pres) * 100).toFixed(1) : 0;
-                    datos.push([cat, pres, ejec, diff, porcentaje]);
-                }
-                datos.sort((a,b) => b[1] - a[1]);
-                
-                const tbody = document.getElementById('tabla-ejecucion-body');
-                tbody.innerHTML = '';
-                for (let d of datos) {
-                    let diffClass = d[3] >= 0 ? 'text-success' : 'text-danger';
-                    tbody.innerHTML += `<td>${d[0]}${d[1].toLocaleString()}${d[2].toLocaleString()}<td class="${diffClass}">$${d[3].toLocaleString()}${d[4]}%`;
+                    const diffClass = diff >= 0 ? 'text-success' : 'text-danger';
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${cat}</td>
+                            <td>$${pres.toLocaleString()}</td>
+                            <td>$${ejec.toLocaleString()}</td>
+                            <td class="${diffClass}">$${diff.toLocaleString()}</td>
+                            <td>${porcentaje}%</td>
+                        </tr>
+                    `;
                 }
             } catch(e) { console.error(e); }
         }
@@ -826,7 +881,7 @@
         }
 
         function descargarDeudoresExcel() {
-            const filas = document.querySelectorAll('#tabla-deudores tbody tr');
+            const filas = document.querySelectorAll('#deudores-tbody tr');
             const datos = [];
             for (let fila of filas) {
                 if (fila.style.display !== 'none') {
@@ -954,7 +1009,7 @@
             try {
                 const fecha = document.getElementById('ingreso-fecha').value;
                 const rubro = document.getElementById('ingreso-rubro').value;
-                const monto = document.getElementById('ingreso-monto').value;
+                let monto = parseFloat(document.getElementById('ingreso-monto').value);
                 const comprobanteManual = document.getElementById('ingreso-comprobante').value;
                 const detalleAdicional = document.getElementById('ingreso-detalle').value;
                 const beneficiarioId = document.getElementById('ingreso-beneficiario').value;
@@ -970,6 +1025,36 @@
                     if (ben) {
                         beneficiarioNombre = `${ben[1]}, ${ben[2]}`;
                         beneficiarioRama = ben[3];
+                    }
+                }
+                
+                // Validar monto según configuración
+                if (rubro === 'Cuota') {
+                    const montoEsperado = configData['total_anual'] / 2 || 45000;
+                    if (monto !== montoEsperado) {
+                        if (!confirm(`El monto ingresado ($${monto}) es diferente al esperado ($${montoEsperado}). ¿Deseas continuar?`)) {
+                            guardando = false;
+                            setLoading('btn-guardar-ingreso', false);
+                            return false;
+                        }
+                    }
+                } else if (rubro === 'Campamento Invierno') {
+                    const montoEsperado = configData['campamento_invierno'] || 60000;
+                    if (monto !== montoEsperado) {
+                        if (!confirm(`El monto ingresado ($${monto}) es diferente al esperado ($${montoEsperado}). ¿Deseas continuar?`)) {
+                            guardando = false;
+                            setLoading('btn-guardar-ingreso', false);
+                            return false;
+                        }
+                    }
+                } else if (rubro === 'Campamento Verano') {
+                    const montoEsperado = configData['campamento_verano'] || 500000;
+                    if (monto !== montoEsperado) {
+                        if (!confirm(`El monto ingresado ($${monto}) es diferente al esperado ($${montoEsperado}). ¿Deseas continuar?`)) {
+                            guardando = false;
+                            setLoading('btn-guardar-ingreso', false);
+                            return false;
+                        }
                     }
                 }
                 
@@ -1006,14 +1091,12 @@
                     beneficiario: beneficiarioNombre,
                     rama: beneficiarioRama,
                     concepto: concepto,
-                    monto: parseFloat(monto)
+                    monto: monto
                 });
                 
                 if (imagenLink) {
                     mostrarMensaje('ingreso-mensaje', '✅ Comprobante guardado en Drive', 'success');
-                    // Guardar el link en la hoja COMPROBANTES
                     await guardarLinkComprobante(numeroComprobanteFinal, imagenLink, fecha, beneficiarioNombre, monto);
-                    // Abrir el link para compartir
                     window.open(imagenLink, '_blank');
                 } else {
                     mostrarMensaje('ingreso-mensaje', '⚠️ No se pudo guardar el comprobante', 'warning');
