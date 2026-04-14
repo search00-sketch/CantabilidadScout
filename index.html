@@ -372,7 +372,6 @@
     </div>
 
     <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script>
         // ========== CONFIGURACIÓN ==========
         const CLIENT_ID = '616578436911-bel2eqgcvtc0j6hldhtogis5av7vvsu3.apps.googleusercontent.com';
@@ -505,20 +504,22 @@
                 const ingresosData = await ingresosRes.json();
                 let totalIngresos = 0;
                 if (ingresosData.values && ingresosData.values.length > 1) {
-                    ingresosData.values.slice(1).forEach(row => {
+                    for (let i = 1; i < ingresosData.values.length; i++) {
+                        const row = ingresosData.values[i];
                         const monto = parseFloat(row[4]) || 0;
                         totalIngresos += monto;
-                    });
+                    }
                 }
                 
                 const egresosRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/EGRESOS!A:E?key=AIzaSyDktlihiPds7AFkLSmrjV-Z0tauWCdqC7o`);
                 const egresosData = await egresosRes.json();
                 let totalEgresos = 0;
                 if (egresosData.values && egresosData.values.length > 1) {
-                    egresosData.values.slice(1).forEach(row => {
+                    for (let i = 1; i < egresosData.values.length; i++) {
+                        const row = egresosData.values[i];
                         const monto = parseFloat(row[4]) || 0;
                         totalEgresos += monto;
-                    });
+                    }
                 }
                 
                 const saldoActual = saldoInicial + totalIngresos - totalEgresos;
@@ -566,14 +567,15 @@
                     const nombre = `${ben[1]}, ${ben[2]}`;
                     const rama = ben[3];
                     let cuotaPagado = 0, campInvPagado = 0, campVerPagado = 0;
-                    ingresos.slice(1).forEach(row => {
+                    for (let i = 1; i < ingresos.length; i++) {
+                        const row = ingresos[i];
                         if (row[2] === id) {
                             const monto = parseFloat(row[4]) || 0;
                             if (row[3] === 'Cuota 1' || row[3] === 'Cuota 2') cuotaPagado += monto;
                             else if (row[3] === 'Campamento Invierno') campInvPagado += monto;
                             else if (row[3] === 'Campamento Verano') campVerPagado += monto;
                         }
-                    });
+                    }
                     const cuotaPendiente = Math.max(0, 80000 - cuotaPagado);
                     const campInvPendiente = Math.max(0, 60000 - campInvPagado);
                     const campVerPendiente = Math.max(0, 500000 - campVerPagado);
@@ -603,7 +605,9 @@
         }
 
         function toggleCamposCuota() {
-            document.getElementById('campos-cuota').classList.toggle('hidden', document.getElementById('ingreso-rubro').value !== 'Cuota');
+            const rubro = document.getElementById('ingreso-rubro').value;
+            const camposCuota = document.getElementById('campos-cuota');
+            camposCuota.classList.toggle('hidden', rubro !== 'Cuota');
         }
 
         function mostrarMensaje(elementId, texto, tipo) {
@@ -614,10 +618,9 @@
             setTimeout(() => msgDiv.classList.add('hidden'), 4000);
         }
 
-        // ========== GENERAR PDF DEL COMPROBANTE (VENTANA ABIERTA PARA IMPRIMIR/COMPARTIR) ==========
-        async function generarComprobantePDF(datos) {
-            const htmlContent = `
-            <!DOCTYPE html>
+        // ========== GENERAR COMPROBANTE PDF (ventana para imprimir) ==========
+        function generarComprobantePDF(datos) {
+            const htmlContent = `<!DOCTYPE html>
             <html>
             <head>
                 <meta charset="UTF-8">
@@ -728,18 +731,9 @@
                         background: #A0522D;
                     }
                     @media print {
-                        body {
-                            background: white;
-                            padding: 0;
-                            margin: 0;
-                        }
-                        .btn-print {
-                            display: none;
-                        }
-                        .comprobante {
-                            box-shadow: none;
-                            margin: 0 auto;
-                        }
+                        body { background: white; padding: 0; margin: 0; }
+                        .btn-print { display: none; }
+                        .comprobante { box-shadow: none; margin: 0 auto; }
                     }
                 </style>
             </head>
@@ -772,12 +766,8 @@
                                 <div class="campo-label">CONCEPTO</div>
                                 <div class="campo-valor">${datos.concepto}</div>
                             </div>
-                            <div class="monto">
-                                $ ${datos.monto.toLocaleString('es-AR')}
-                            </div>
-                            <div class="estado">
-                                <span class="pagado">✅ PAGADO</span>
-                            </div>
+                            <div class="monto">$ ${datos.monto.toLocaleString('es-AR')}</div>
+                            <div class="estado"><span class="pagado">✅ PAGADO</span></div>
                         </div>
                         <div class="footer">
                             ¡Gracias por tu colaboración!<br>
@@ -786,14 +776,9 @@
                     </div>
                     <button class="btn-print" onclick="window.print()">🖨️ Imprimir / Guardar como PDF</button>
                 </div>
-                <script>
-                    console.log('Comprobante generado correctamente');
-                </script>
             </body>
-            </html>
-            `;
+            </html>`;
             
-            // Abrir ventana nueva con el comprobante
             const ventana = window.open();
             ventana.document.write(htmlContent);
             ventana.document.close();
@@ -811,14 +796,15 @@
                 const egresos = egresosData.values || [];
                 
                 const ejecutado = {};
-                egresos.slice(1).forEach(row => {
+                for (let i = 1; i < egresos.length; i++) {
+                    const row = egresos[i];
                     const fecha = row[0]?.split('T')[0] || '';
                     if (fecha >= fechaInicio && fecha <= fechaFin) {
                         const categoria = row[1] || 'Otros';
                         const monto = parseFloat(row[4]) || 0;
                         ejecutado[categoria] = (ejecutado[categoria] || 0) + monto;
                     }
-                });
+                }
                 
                 const presupuestos = {};
                 categoriasData.forEach(cat => {
@@ -838,10 +824,10 @@
                 
                 const tbody = document.getElementById('tabla-ejecucion-body');
                 tbody.innerHTML = '';
-                datos.forEach(d => {
+                for (let d of datos) {
                     let diffClass = d[3] >= 0 ? 'text-success' : 'text-danger';
                     tbody.innerHTML += `<tr><td>${d[0]}</td><td>$${d[1].toLocaleString()}</td><td>$${d[2].toLocaleString()}</td><td class="${diffClass}">$${d[3].toLocaleString()}</td><td>${d[4]}%</td></tr>`;
-                });
+                }
             } catch(e) { console.error(e); }
         }
 
@@ -857,7 +843,7 @@
         function descargarDeudoresExcel() {
             const filas = document.querySelectorAll('#tabla-deudores tbody tr');
             const datos = [];
-            filas.forEach(fila => {
+            for (let fila of filas) {
                 if (fila.style.display !== 'none') {
                     const celdas = fila.cells;
                     datos.push([
@@ -870,7 +856,7 @@
                         celdas[6].textContent
                     ]);
                 }
-            });
+            }
             descargarExcel('deudores_scout', ['Beneficiario', 'Rama', 'Cuota', 'Camp. Invierno', 'Camp. Verano', 'Total Pagado', 'Total Pendiente'], datos);
         }
 
@@ -885,12 +871,13 @@
                 const egresos = egresosData.values || [];
                 
                 const datos = [];
-                egresos.slice(1).forEach(row => {
+                for (let i = 1; i < egresos.length; i++) {
+                    const row = egresos[i];
                     const fecha = row[0]?.split('T')[0] || '';
                     if (fecha >= desde && fecha <= hasta) {
                         datos.push([fecha, row[1] || '', row[2] || '', row[3] || '', row[4] || '']);
                     }
-                });
+                }
                 descargarExcel('libro_caja', ['Fecha', 'Rubro', 'Detalle', 'N° Comprobante', 'Monto'], datos);
             } catch(e) { alert('Error al generar el informe'); }
         }
@@ -909,14 +896,16 @@
                 const egresos = egresosData.values || [];
                 
                 let totalIngresos = 0, totalEgresos = 0;
-                ingresos.slice(1).forEach(row => {
+                for (let i = 1; i < ingresos.length; i++) {
+                    const row = ingresos[i];
                     const fecha = row[0]?.split('T')[0] || '';
                     if (fecha >= fechaInicio && fecha <= fechaFin) totalIngresos += parseFloat(row[4]) || 0;
-                });
-                egresos.slice(1).forEach(row => {
+                }
+                for (let i = 1; i < egresos.length; i++) {
+                    const row = egresos[i];
                     const fecha = row[0]?.split('T')[0] || '';
                     if (fecha >= fechaInicio && fecha <= fechaFin) totalEgresos += parseFloat(row[4]) || 0;
-                });
+                }
                 
                 const datos = [
                     ['Total Ingresos', totalIngresos],
@@ -938,14 +927,15 @@
                 const egresos = egresosData.values || [];
                 
                 const ejecutado = {};
-                egresos.slice(1).forEach(row => {
+                for (let i = 1; i < egresos.length; i++) {
+                    const row = egresos[i];
                     const fecha = row[0]?.split('T')[0] || '';
                     if (fecha >= fechaInicio && fecha <= fechaFin) {
                         const categoria = row[1] || 'Otros';
                         const monto = parseFloat(row[4]) || 0;
                         ejecutado[categoria] = (ejecutado[categoria] || 0) + monto;
                     }
-                });
+                }
                 
                 const presupuestos = {};
                 categoriasData.forEach(cat => {
@@ -1027,7 +1017,6 @@
                     }
                 }
                 
-                // Subir archivo adjunto a Drive (comprobante escaneado)
                 let linkArchivo = '';
                 if (archivo) {
                     linkArchivo = await subirArchivoADrive(archivo, DRIVE_FOLDER_ID_INGRESOS, 'ingreso');
@@ -1040,18 +1029,11 @@
                 const numeroComprobanteFinal = comprobanteManual || numComprobante;
                 const fechaFormateada = fecha.split('-').reverse().join('/');
                 
-                // Detalle completo
+                // Detalle completo para columna B
                 const detalleCompleto = `${beneficiarioNombre} (${beneficiarioRama})${detalleAdicional ? ' - ' + detalleAdicional : ''}`;
                 
-                // Guardar en INGRESOS_unitario
-                const values = [[
-                    fecha,                      // A: Fecha
-                    detalleCompleto,            // B: Detalle
-                    rubro === 'Cuota' ? cuota : rubro,  // C: Rubro
-                    numeroComprobanteFinal,     // D: N° Comprobante
-                    monto,                      // E: Ingreso
-                    ''                          // F: Egreso
-                ]];
+                // FORMATO CORRECTO: A:Fecha | B:Detalle | C:Rubro | D:N°Comprobante | E:Ingreso | F:Egreso
+                const values = [[fecha, detalleCompleto, rubro === 'Cuota' ? cuota : rubro, numeroComprobanteFinal, monto, '']];
                 
                 const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/INGRESOS_unitario:append?valueInputOption=USER_ENTERED`, {
                     method: 'POST',
@@ -1062,7 +1044,6 @@
                 if (res.ok) {
                     mostrarMensaje('ingreso-mensaje', '✅ Ingreso guardado correctamente', 'success');
                     
-                    // Generar comprobante PDF
                     const datosComprobante = {
                         numero: numeroComprobanteFinal,
                         fecha: fechaFormateada,
@@ -1072,7 +1053,7 @@
                         monto: parseFloat(monto)
                     };
                     
-                    await generarComprobantePDF(datosComprobante);
+                    generarComprobantePDF(datosComprobante);
                     
                     document.getElementById('form-ingreso').reset();
                     document.getElementById('campos-cuota').classList.add('hidden');
@@ -1115,6 +1096,7 @@
                     }
                 }
                 
+                // FORMATO EGRESOS: A:Fecha | B:Rubro | C:Detalle | D:N°Comprobante | E:Monto | F:LinkFoto | G:Usuario | H:FechaHora
                 const values = [[fecha, rubro, detalle, comprobante, monto, linkArchivo, currentUser, new Date().toISOString()]];
                 const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/EGRESOS:append?valueInputOption=USER_ENTERED`, {
                     method: 'POST',
