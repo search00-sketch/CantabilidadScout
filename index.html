@@ -138,6 +138,38 @@
             font-size: 1.2rem;
         }
         
+        /* Estilos para vista previa de archivos */
+        .file-preview {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .file-preview img {
+            max-width: 100px;
+            max-height: 100px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+        .file-preview .file-name {
+            font-size: 0.85rem;
+            color: #666;
+            word-break: break-all;
+        }
+        .btn-remove-file {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.75rem;
+        }
+        
         @media (max-width: 768px) {
             body { padding: 8px; }
             .card { padding: 12px; }
@@ -251,8 +283,13 @@
                             </div>
                             <div class="form-group"><label>Detalle adicional</label><textarea id="ingreso-detalle" class="form-control" rows="2"></textarea></div>
                             <div class="form-group">
-                                <label>Comprobante escaneado (PDF o Imagen - opcional)</label>
-                                <input type="file" id="ingreso-archivo" class="form-control" accept="image/*,application/pdf">
+                                <label>Comprobante escaneado (PDF o Imagen)</label>
+                                <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 5px;">
+                                    <button type="button" class="btn btn-sm" style="background: #ddd;" onclick="document.getElementById('ingreso-archivo').click()">📁 Seleccionar archivo</button>
+                                    <button type="button" class="btn btn-sm" style="background: #ddd;" onclick="tomarFoto('ingreso-archivo')">📷 Tomar foto</button>
+                                </div>
+                                <input type="file" id="ingreso-archivo" class="form-control" accept="image/*,application/pdf" style="display: none;" onchange="previsualizarArchivo(this, 'ingreso-preview')">
+                                <div id="ingreso-preview" class="file-preview hidden"></div>
                             </div>
                             <div class="text-right"><button type="reset" class="btn" style="background:#ddd;">Cancelar</button><button type="submit" class="btn btn-success" id="btn-guardar-ingreso">Guardar Ingreso</button></div>
                         </form>
@@ -295,8 +332,13 @@
                                 <div class="form-group"><label>N° Comprobante</label><input type="text" id="egreso-comprobante" class="form-control"></div>
                             </div>
                             <div class="form-group">
-                                <label>Archivo (PDF o Imagen - opcional)</label>
-                                <input type="file" id="egreso-archivo" class="form-control" accept="image/*,application/pdf">
+                                <label>Archivo (PDF o Imagen)</label>
+                                <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 5px;">
+                                    <button type="button" class="btn btn-sm" style="background: #ddd;" onclick="document.getElementById('egreso-archivo').click()">📁 Seleccionar archivo</button>
+                                    <button type="button" class="btn btn-sm" style="background: #ddd;" onclick="tomarFoto('egreso-archivo')">📷 Tomar foto</button>
+                                </div>
+                                <input type="file" id="egreso-archivo" class="form-control" accept="image/*,application/pdf" style="display: none;" onchange="previsualizarArchivo(this, 'egreso-preview')">
+                                <div id="egreso-preview" class="file-preview hidden"></div>
                             </div>
                             <div class="text-right"><button type="reset" class="btn" style="background:#ddd;">Cancelar</button><button type="submit" class="btn btn-danger" id="btn-guardar-egreso">Guardar Egreso</button></div>
                         </form>
@@ -317,20 +359,8 @@
                     <div class="card">
                         <div class="table-responsive">
                             <table id="tabla-deudores">
-                                <thead>
-                                    <tr>
-                                        <th>Beneficiario</th>
-                                        <th>Rama</th>
-                                        <th>Cuota</th>
-                                        <th>Camp. Invierno</th>
-                                        <th>Camp. Verano</th>
-                                        <th>Total Pagado</th>
-                                        <th>Total Pendiente</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="deudores-tbody">
-                                    <tr><td colspan="7" class="text-center">Cargando...</td></tr>
-                                </tbody>
+                                <thead><tr><th>Beneficiario</th><th>Rama</th><th>Cuota</th><th>Camp. Invierno</th><th>Camp. Verano</th><th>Total Pagado</th><th>Total Pendiente</th></thead>
+                                <tbody id="deudores-tbody"><tr><td colspan="7" class="text-center">Cargando...</td></tr></tbody>
                             </table>
                         </div>
                     </div>
@@ -374,18 +404,8 @@
                         </div>
                         <div class="table-responsive mt-10">
                             <table id="tabla-ejecucion">
-                                <thead>
-                                    <tr>
-                                        <th>Categoría</th>
-                                        <th>Presupuesto</th>
-                                        <th>Ejecutado</th>
-                                        <th>Diferencia</th>
-                                        <th>%</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tabla-ejecucion-body">
-                                    <tr><td colspan="5" class="text-center">Seleccioná un período y hacé clic en "Actualizar Tabla"</td></tr>
-                                </tbody>
+                                <thead><tr><th>Categoría</th><th>Presupuesto</th><th>Ejecutado</th><th>Diferencia</th><th>%</th></thead>
+                                <tbody id="tabla-ejecucion-body"><tr><td colspan="5" class="text-center">Seleccioná un período y hacé clic en "Actualizar Tabla"</tr</tbody>
                             </table>
                         </div>
                     </div>
@@ -432,6 +452,94 @@
             } else {
                 btn.disabled = false;
                 btn.innerHTML = btn.id === 'btn-guardar-ingreso' ? 'Guardar Ingreso' : 'Guardar Egreso';
+            }
+        }
+
+        // ========== MANEJO DE ARCHIVOS EN MÓVIL ==========
+        function tomarFoto(inputId) {
+            const input = document.getElementById(inputId);
+            // Crear un input temporal con capture para la cámara
+            const captureInput = document.createElement('input');
+            captureInput.type = 'file';
+            captureInput.accept = 'image/*';
+            captureInput.capture = 'environment'; // 'user' para cámara frontal, 'environment' para trasera
+            captureInput.onchange = (e) => {
+                if (e.target.files && e.target.files[0]) {
+                    // Crear un nuevo FileList para el input original
+                    const dataTransfer = new DataTransfer();
+                    dataTransfer.items.add(e.target.files[0]);
+                    input.files = dataTransfer.files;
+                    // Disparar el evento change manualmente
+                    const changeEvent = new Event('change', { bubbles: true });
+                    input.dispatchEvent(changeEvent);
+                }
+            };
+            captureInput.click();
+        }
+
+        function previsualizarArchivo(input, previewId) {
+            const previewDiv = document.getElementById(previewId);
+            if (!input.files || !input.files[0]) {
+                previewDiv.classList.add('hidden');
+                previewDiv.innerHTML = '';
+                return;
+            }
+            
+            const file = input.files[0];
+            const fileName = file.name;
+            const fileSize = (file.size / 1024).toFixed(2) + ' KB';
+            
+            previewDiv.innerHTML = '';
+            previewDiv.classList.remove('hidden');
+            
+            // Si es imagen, mostrar vista previa
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.style.maxWidth = '100px';
+                    img.style.maxHeight = '100px';
+                    img.style.borderRadius = '8px';
+                    previewDiv.appendChild(img);
+                    
+                    const info = document.createElement('span');
+                    info.className = 'file-name';
+                    info.textContent = `${fileName} (${fileSize})`;
+                    previewDiv.appendChild(info);
+                    
+                    const removeBtn = document.createElement('button');
+                    removeBtn.textContent = '✖ Eliminar';
+                    removeBtn.className = 'btn-remove-file';
+                    removeBtn.onclick = () => {
+                        input.value = '';
+                        previewDiv.classList.add('hidden');
+                        previewDiv.innerHTML = '';
+                    };
+                    previewDiv.appendChild(removeBtn);
+                };
+                reader.readAsDataURL(file);
+            } else {
+                // Para PDFs, solo mostrar información
+                const icon = document.createElement('span');
+                icon.textContent = '📄';
+                icon.style.fontSize = '2rem';
+                previewDiv.appendChild(icon);
+                
+                const info = document.createElement('span');
+                info.className = 'file-name';
+                info.textContent = `${fileName} (${fileSize})`;
+                previewDiv.appendChild(info);
+                
+                const removeBtn = document.createElement('button');
+                removeBtn.textContent = '✖ Eliminar';
+                removeBtn.className = 'btn-remove-file';
+                removeBtn.onclick = () => {
+                    input.value = '';
+                    previewDiv.classList.add('hidden');
+                    previewDiv.innerHTML = '';
+                };
+                previewDiv.appendChild(removeBtn);
             }
         }
 
@@ -514,7 +622,7 @@
             if (s === 'informes') cargarEjecucionEnTabla();
         }
 
-        // ========== CARGAR CONFIGURACIÓN DESDE SHEETS ==========
+        // ========== CARGAR CONFIGURACIÓN ==========
         async function cargarConfiguracion() {
             try {
                 const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/CONFIG!A:B?key=AIzaSyDktlihiPds7AFkLSmrjV-Z0tauWCdqC7o`);
@@ -527,19 +635,6 @@
                 }
                 console.log('Configuración cargada:', configData);
             } catch(e) { console.error('Error cargando configuración:', e); }
-        }
-
-        function getMontoConcepto(concepto) {
-            if (concepto === 'Cuota 1' || concepto === 'Cuota 2') {
-                return configData['total_anual'] / 2 || 45000;
-            }
-            if (concepto === 'Campamento Invierno') {
-                return configData['campamento_invierno'] || 60000;
-            }
-            if (concepto === 'Campamento Verano') {
-                return configData['campamento_verano'] || 500000;
-            }
-            return 0;
         }
 
         // ========== CARGAR ÚLTIMO NÚMERO DE COMPROBANTE ==========
@@ -784,12 +879,17 @@
         async function subirArchivoADrive(archivo, folderId) {
             if (!archivo) return '';
             try {
-                if (archivo.size > 10 * 1024 * 1024) return '';
+                // Comprimir imagen si es muy grande
+                let fileToUpload = archivo;
+                if (archivo.type.startsWith('image/') && archivo.size > 2 * 1024 * 1024) {
+                    fileToUpload = await comprimirImagen(archivo);
+                }
+                
                 const fileName = `${new Date().toISOString().slice(0,19).replace(/:/g, '-')}_${archivo.name}`;
                 const metadata = { name: fileName, parents: [folderId] };
                 const formData = new FormData();
                 formData.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-                formData.append('file', archivo);
+                formData.append('file', fileToUpload, fileName);
                 
                 const uploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink', {
                     method: 'POST',
@@ -802,7 +902,39 @@
                     return data.webViewLink || `https://drive.google.com/file/d/${data.id}/view`;
                 }
                 return '';
-            } catch(e) { return ''; }
+            } catch(e) { 
+                console.error('Error subiendo archivo:', e);
+                return ''; 
+            }
+        }
+
+        // ========== COMPRIMIR IMAGEN ==========
+        function comprimirImagen(file) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.src = e.target.result;
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+                        const maxSize = 1024;
+                        if (width > maxSize) {
+                            height = (height * maxSize) / width;
+                            width = maxSize;
+                        }
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        canvas.toBlob((blob) => {
+                            resolve(new File([blob], file.name, { type: 'image/jpeg' }));
+                        }, 'image/jpeg', 0.7);
+                    };
+                };
+            });
         }
 
         // ========== GUARDAR EN HOJA COMPROBANTES ==========
@@ -1064,6 +1196,8 @@
                     linkAdjunto = await subirArchivoADrive(archivoAdjunto, DRIVE_FOLDER_ID_INGRESOS);
                     if (linkAdjunto) {
                         mostrarMensaje('ingreso-mensaje', '📎 Archivo adjunto subido correctamente', 'success');
+                    } else {
+                        mostrarMensaje('ingreso-mensaje', '⚠️ No se pudo subir el archivo adjunto', 'warning');
                     }
                 }
                 
@@ -1117,6 +1251,8 @@
                     document.getElementById('campos-beneficiario').classList.add('hidden');
                     document.getElementById('campo-cuota').classList.add('hidden');
                     document.getElementById('ingreso-archivo').value = '';
+                    document.getElementById('ingreso-preview').classList.add('hidden');
+                    document.getElementById('ingreso-preview').innerHTML = '';
                     cargarSaldos();
                     cargarDeudores();
                 } else { mostrarMensaje('ingreso-mensaje', '❌ Error al guardar en la planilla', 'error'); }
@@ -1152,6 +1288,8 @@
                     linkArchivo = await subirArchivoADrive(archivo, DRIVE_FOLDER_ID_EGRESOS);
                     if (linkArchivo) {
                         mostrarMensaje('egreso-mensaje', '📎 Archivo adjunto subido correctamente', 'success');
+                    } else {
+                        mostrarMensaje('egreso-mensaje', '⚠️ No se pudo subir el archivo', 'warning');
                     }
                 }
                 
@@ -1166,6 +1304,8 @@
                     mostrarMensaje('egreso-mensaje', '✅ Egreso guardado correctamente' + (linkArchivo ? ' (archivo adjunto)' : ''), 'success');
                     document.getElementById('form-egreso').reset();
                     document.getElementById('egreso-archivo').value = '';
+                    document.getElementById('egreso-preview').classList.add('hidden');
+                    document.getElementById('egreso-preview').innerHTML = '';
                     cargarSaldos();
                 } else { mostrarMensaje('egreso-mensaje', '❌ Error al guardar', 'error'); }
             } catch(e) { mostrarMensaje('egreso-mensaje', '❌ Error de conexión', 'error'); }
