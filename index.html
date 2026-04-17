@@ -375,7 +375,7 @@
                         <div class="table-responsive mt-10">
                             <table id="tabla-ejecucion">
                                 <thead><tr><th>Categoría</th><th>Presupuesto</th><th>Ejecutado</th><th>Diferencia</th><th>%</th></thead>
-                                <tbody id="tabla-ejecucion-body"><tr><td colspan="5" class="text-center">Seleccioná un período y hacé clic en "Actualizar Tabla"</tr</tbody>
+                                <tbody id="tabla-ejecucion-body"><tr><td colspan="5" class="text-center">Seleccioná un período y hacé clic en "Actualizar Tabla"</td></tr></tbody>
                             </table>
                         </div>
                     </div>
@@ -393,7 +393,21 @@
         const DRIVE_FOLDER_ID_EGRESOS = '14wcPHlhFWG8oM9MBK9ad4AwuJDwR7yey';
         const DRIVE_FOLDER_ID_INGRESOS = '1fi0HjXVY8y9KIrqB3G8bscp7wPxGBZ_1';
         const DRIVE_FOLDER_ID_COMPROBANTES = '1fi0HjXVY8y9KIrqB3G8bscp7wPxGBZ_1';
+
+        // ⚠️ IMPORTANTE: Agregá aquí los emails de Google autorizados para usar el sistema.
+        // Si el array está vacío, cualquier cuenta de Google podrá acceder.
+        const USUARIOS_PERMITIDOS = [
+            // 'admin@ejemplo.com',
+            // 'tesorero@ejemplo.com',
+        ];
         
+        // ⚠️ SEGURIDAD - API KEY: Esta clave se usa SOLO para lecturas públicas de Google Sheets.
+        // Para protegerla: en Google Cloud Console → Credenciales → Restricciones de la clave:
+        //   1. Restringí por "Referentes HTTP" a tu dominio (ej: https://tu-dominio.com/*)
+        //   2. Restringí por "API" solo a "Google Sheets API"
+        // Las escrituras (ingresos/egresos) ya usan el token OAuth seguro, no esta key.
+        const API_KEY = 'AIzaSyDktlihiPds7AFkLSmrjV-Z0tauWCdqC7o';
+
         const getRedirectUri = () => {
             let uri = window.location.origin + window.location.pathname;
             if (!uri.endsWith('/') && !uri.endsWith('.html')) uri += '/';
@@ -461,13 +475,29 @@
                     .then(res => res.json())
                     .then(userInfo => {
                         currentUser = userInfo.email;
+                        if (USUARIOS_PERMITIDOS.length > 0 && !USUARIOS_PERMITIDOS.includes(currentUser)) {
+                            const loginError = document.getElementById('login-error');
+                            loginError.textContent = `Acceso denegado. La cuenta ${currentUser} no tiene permiso para usar este sistema.`;
+                            loginError.classList.remove('hidden');
+                            accessToken = null;
+                            sessionStorage.clear();
+                            window.location.hash = '';
+                            return;
+                        }
                         sessionStorage.setItem('access_token', accessToken);
                         sessionStorage.setItem('user_email', currentUser);
                         sessionStorage.setItem('token_expires', Date.now() + 3600000);
                         window.location.hash = '';
                         mostrarDashboard();
                     })
-                    .catch(err => console.error('Error:', err));
+                    .catch(err => {
+                        console.error('Error:', err);
+                        const loginError = document.getElementById('login-error');
+                        loginError.textContent = 'Error al obtener información del usuario. Intentá de nuevo.';
+                        loginError.classList.remove('hidden');
+                        accessToken = null;
+                        sessionStorage.clear();
+                    });
                 }
             }
         }
@@ -491,10 +521,8 @@
             document.getElementById('user-email').textContent = currentUser || 'Usuario';
             await cargarConfiguracion();
             await cargarBeneficiarios();
-            await cargarCategorias();
-            await cargarSaldos();
+            await Promise.all([cargarCategorias(), cargarSaldos(), cargarUltimoNumeroComprobante()]);
             await cargarDeudores();
-            await cargarUltimoNumeroComprobante();
         }
 
         function logout() {
@@ -519,7 +547,7 @@
         // ========== CARGAR CONFIGURACIÓN ==========
         async function cargarConfiguracion() {
             try {
-                const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/CONFIG!A:B?key=AIzaSyDktlihiPds7AFkLSmrjV-Z0tauWCdqC7o`);
+                const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/CONFIG!A:B?key=${API_KEY}`);
                 const data = await res.json();
                 if (data.values) {
                     for (let i = 1; i < data.values.length; i++) {
@@ -527,14 +555,13 @@
                         configData[row[0]] = parseFloat(row[1]) || row[1];
                     }
                 }
-                console.log('Configuración cargada:', configData);
             } catch(e) { console.error('Error cargando configuración:', e); }
         }
 
         // ========== CARGAR ÚLTIMO NÚMERO DE COMPROBANTE ==========
         async function cargarUltimoNumeroComprobante() {
             try {
-                const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/INGRESOS_unitario!D:D?key=AIzaSyDktlihiPds7AFkLSmrjV-Z0tauWCdqC7o`);
+                const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/INGRESOS_unitario!D:D?key=${API_KEY}`);
                 const data = await res.json();
                 let maxNum = 0;
                 if (data.values && data.values.length > 1) {
@@ -553,7 +580,7 @@
             try {
                 let saldoInicial = configData['total_inicial'] || 5276798.05;
                 
-                const ingresosRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/INGRESOS_unitario!A:F?key=AIzaSyDktlihiPds7AFkLSmrjV-Z0tauWCdqC7o`);
+                const ingresosRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/INGRESOS_unitario!A:F?key=${API_KEY}`);
                 const ingresosData = await ingresosRes.json();
                 let totalIngresos = 0;
                 if (ingresosData.values && ingresosData.values.length > 1) {
@@ -564,7 +591,7 @@
                     }
                 }
                 
-                const egresosRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/EGRESOS!A:E?key=AIzaSyDktlihiPds7AFkLSmrjV-Z0tauWCdqC7o`);
+                const egresosRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/EGRESOS!A:E?key=${API_KEY}`);
                 const egresosData = await egresosRes.json();
                 let totalEgresos = 0;
                 if (egresosData.values && egresosData.values.length > 1) {
@@ -585,7 +612,7 @@
         // ========== LECTURA DE DATOS ==========
         async function cargarCategorias() {
             try {
-                const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/CATEGORIAS!A:D?key=AIzaSyDktlihiPds7AFkLSmrjV-Z0tauWCdqC7o`);
+                const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/CATEGORIAS!A:D?key=${API_KEY}`);
                 const data = await res.json();
                 if (data.values && data.values.length > 1) {
                     categoriasData = data.values.slice(1).filter(row => row[0] === 'Egreso' && row[2] === 'SÍ');
@@ -595,7 +622,7 @@
 
         async function cargarBeneficiarios() {
             try {
-                const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/BENEFICIARIOS!A:E?key=AIzaSyDktlihiPds7AFkLSmrjV-Z0tauWCdqC7o`);
+                const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/BENEFICIARIOS!A:E?key=${API_KEY}`);
                 const data = await res.json();
                 if (data.values && data.values.length > 1) {
                     beneficiariosData = data.values.slice(1).filter(row => row[4] === 'SI');
@@ -610,7 +637,7 @@
 
         async function cargarDeudores() {
             try {
-                const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/INGRESOS_unitario!A:F?key=AIzaSyDktlihiPds7AFkLSmrjV-Z0tauWCdqC7o`);
+                const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/INGRESOS_unitario!A:F?key=${API_KEY}`);
                 const data = await res.json();
                 const ingresos = data.values || [];
                 const tbody = document.getElementById('deudores-tbody');
@@ -827,7 +854,7 @@
             const fechaFin = periodo === 'anual' ? '2027-03-01' : '2026-06-30';
             
             try {
-                const egresosRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/EGRESOS!A:E?key=AIzaSyDktlihiPds7AFkLSmrjV-Z0tauWCdqC7o`);
+                const egresosRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/EGRESOS!A:E?key=${API_KEY}`);
                 const egresosData = await egresosRes.json();
                 const egresos = egresosData.values || [];
                 
@@ -905,19 +932,32 @@
             if (!desde || !hasta) { alert('Seleccioná las fechas'); return; }
             
             try {
-                const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/EGRESOS!A:E?key=AIzaSyDktlihiPds7AFkLSmrjV-Z0tauWCdqC7o`);
-                const egresosData = await res.json();
+                const [resEgresos, resIngresos] = await Promise.all([
+                    fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/EGRESOS!A:E?key=${API_KEY}`),
+                    fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/INGRESOS_unitario!A:F?key=${API_KEY}`)
+                ]);
+                const egresosData = await resEgresos.json();
+                const ingresosData = await resIngresos.json();
                 const egresos = egresosData.values || [];
+                const ingresos = ingresosData.values || [];
                 
                 const datos = [];
+                for (let i = 1; i < ingresos.length; i++) {
+                    const row = ingresos[i];
+                    const fecha = row[0]?.split('T')[0] || '';
+                    if (fecha >= desde && fecha <= hasta) {
+                        datos.push([fecha, 'Ingreso', row[1] || '', row[3] || '', parseFloat(row[4]) || 0, 0]);
+                    }
+                }
                 for (let i = 1; i < egresos.length; i++) {
                     const row = egresos[i];
                     const fecha = row[0]?.split('T')[0] || '';
                     if (fecha >= desde && fecha <= hasta) {
-                        datos.push([fecha, row[1] || '', row[2] || '', row[3] || '', row[4] || '']);
+                        datos.push([fecha, 'Egreso', row[1] || '', row[2] || '', 0, parseFloat(row[4]) || 0]);
                     }
                 }
-                descargarExcel('libro_caja', ['Fecha', 'Rubro', 'Detalle', 'N° Comprobante', 'Monto'], datos);
+                datos.sort((a, b) => a[0].localeCompare(b[0]));
+                descargarExcel('libro_caja', ['Fecha', 'Tipo', 'Rubro/Detalle', 'Concepto/Comprobante', 'Ingreso', 'Egreso'], datos);
             } catch(e) { alert('Error al generar el informe'); }
         }
 
@@ -927,8 +967,8 @@
             const fechaFin = periodo === 'anual' ? '2027-03-01' : '2026-06-30';
             
             try {
-                const ingresosRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/INGRESOS_unitario!A:F?key=AIzaSyDktlihiPds7AFkLSmrjV-Z0tauWCdqC7o`);
-                const egresosRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/EGRESOS!A:E?key=AIzaSyDktlihiPds7AFkLSmrjV-Z0tauWCdqC7o`);
+                const ingresosRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/INGRESOS_unitario!A:F?key=${API_KEY}`);
+                const egresosRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/EGRESOS!A:E?key=${API_KEY}`);
                 const ingresosData = await ingresosRes.json();
                 const egresosData = await egresosRes.json();
                 const ingresos = ingresosData.values || [];
@@ -961,7 +1001,7 @@
             const fechaFin = periodo === 'anual' ? '2027-03-01' : '2026-06-30';
             
             try {
-                const egresosRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/EGRESOS!A:E?key=AIzaSyDktlihiPds7AFkLSmrjV-Z0tauWCdqC7o`);
+                const egresosRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/EGRESOS!A:E?key=${API_KEY}`);
                 const egresosData = await egresosRes.json();
                 const egresos = egresosData.values || [];
                 
@@ -1029,7 +1069,7 @@
                 
                 // Validar monto según configuración
                 if (rubro === 'Cuota') {
-                    const montoEsperado = configData['total_anual'] / 2 || 45000;
+                    const montoEsperado = (configData['total_anual'] || 90000) / 2;
                     if (monto !== montoEsperado) {
                         if (!confirm(`El monto ingresado ($${monto}) es diferente al esperado ($${montoEsperado}). ¿Deseas continuar?`)) {
                             guardando = false;
@@ -1152,7 +1192,12 @@
                 const comprobante = document.getElementById('egreso-comprobante').value;
                 const archivo = document.getElementById('egreso-archivo').files[0];
                 
-                if (!fecha || !rubro || !monto) { alert('Completá los campos obligatorios'); return false; }
+                if (!fecha || !rubro || !monto) {
+                    alert('Completá los campos obligatorios');
+                    guardando = false;
+                    setLoading('btn-guardar-egreso', false);
+                    return false;
+                }
                 
                 let linkArchivo = '';
                 if (archivo) {
