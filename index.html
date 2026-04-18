@@ -580,12 +580,13 @@
             try {
                 let saldoInicial = configData['total_inicial'] || 5276798.05;
                 
-                const ingresosRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/INGRESOS_unitario!A:F?key=${API_KEY}`);
+                const ingresosRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/INGRESOS_unitario!A:G?key=${API_KEY}`);
                 const ingresosData = await ingresosRes.json();
                 let totalIngresos = 0;
                 if (ingresosData.values && ingresosData.values.length > 1) {
                     for (let i = 1; i < ingresosData.values.length; i++) {
                         const row = ingresosData.values[i];
+                        // Col E (idx 4) = Ingreso en estructura real de la hoja
                         const monto = parseFloat(row[4]) || 0;
                         totalIngresos += monto;
                     }
@@ -637,7 +638,7 @@
 
         async function cargarDeudores() {
             try {
-                const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/INGRESOS_unitario!A:F?key=${API_KEY}`);
+                const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/INGRESOS_unitario!A:G?key=${API_KEY}`);
                 const data = await res.json();
                 const ingresos = data.values || [];
                 const tbody = document.getElementById('deudores-tbody');
@@ -648,18 +649,21 @@
                 const campVerTotal = configData['campamento_verano'] || 500000;
                 
                 for (let ben of beneficiariosData) {
-                    const id = ben[0];
+                    const id = String(ben[0]);
                     const nombre = `${ben[1]}, ${ben[2]}`;
                     const rama = ben[3];
                     let cuotaPagado = 0, campInvPagado = 0, campVerPagado = 0;
                     
                     for (let i = 1; i < ingresos.length; i++) {
                         const row = ingresos[i];
-                        if (row[2] === id) {
-                            const monto = parseFloat(row[4]) || 0;
-                            if (row[3] === 'Cuota 1' || row[3] === 'Cuota 2') cuotaPagado += monto;
-                            else if (row[3] === 'Campamento Invierno') campInvPagado += monto;
-                            else if (row[3] === 'Campamento Verano') campVerPagado += monto;
+                        // Estructura real: A=Fecha | B=Detalle | C=Rubro | D=N°Comp | E=Ingreso | F=Egreso | G=BeneficiarioId
+                        const rowId = String(row[6] || '');
+                        const rowRubro = String(row[2] || '');
+                        const rowMonto = parseFloat(row[4]) || 0;
+                        if (rowId === id) {
+                            if (rowRubro.includes('Afiliación') || rowRubro === 'Cuota 1' || rowRubro === 'Cuota 2') cuotaPagado += rowMonto;
+                            else if (rowRubro === 'Campamento Invierno') campInvPagado += rowMonto;
+                            else if (rowRubro === 'Campamento Verano') campVerPagado += rowMonto;
                         }
                     }
                     
@@ -747,16 +751,22 @@
                     </div>
                     <div style="margin-bottom:15px;padding-bottom:10px;border-bottom:1px dashed #ddd">
                         <div style="font-size:0.75rem;color:#8B4513;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px">RECIBÍ DE</div>
-                        <div style="font-size:1.1rem;font-weight:500;color:#2C1810">${datos.beneficiario}</div>
+                        <div style="font-size:1.1rem;font-weight:500;color:#2C1810">${datos.beneficiario !== 'General' ? datos.beneficiario : '-'}</div>
                     </div>
+                    ${(datos.rubro === 'Cuota' || datos.rubro === 'Campamento Invierno' || datos.rubro === 'Campamento Verano') ? `
                     <div style="margin-bottom:15px;padding-bottom:10px;border-bottom:1px dashed #ddd">
                         <div style="font-size:0.75rem;color:#8B4513;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px">RAMA</div>
                         <div style="font-size:1.1rem;font-weight:500;color:#2C1810">${datos.rama}</div>
-                    </div>
+                    </div>` : ''}
                     <div style="margin-bottom:15px;padding-bottom:10px;border-bottom:1px dashed #ddd">
                         <div style="font-size:0.75rem;color:#8B4513;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px">CONCEPTO</div>
                         <div style="font-size:1.1rem;font-weight:500;color:#2C1810">${datos.concepto}</div>
                     </div>
+                    ${datos.detalle ? `
+                    <div style="margin-bottom:15px;padding-bottom:10px;border-bottom:1px dashed #ddd">
+                        <div style="font-size:0.75rem;color:#8B4513;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px">DESCRIPCIÓN</div>
+                        <div style="font-size:1rem;font-weight:400;color:#2C1810">${datos.detalle}</div>
+                    </div>` : ''}
                     <div style="font-size:1.8rem;font-weight:bold;color:#2C1810;text-align:center;margin:20px 0">$ ${datos.monto.toLocaleString('es-AR')}</div>
                     <div style="text-align:center;margin:20px 0"><span style="display:inline-block;background:#10b981;color:white;padding:8px 25px;border-radius:30px;font-weight:bold;letter-spacing:2px">✅ PAGADO</span></div>
                 </div>
@@ -944,9 +954,18 @@
                 const datos = [];
                 for (let i = 1; i < ingresos.length; i++) {
                     const row = ingresos[i];
-                    const fecha = row[0]?.split('T')[0] || '';
-                    if (fecha >= desde && fecha <= hasta) {
-                        datos.push([fecha, 'Ingreso', row[1] || '', row[3] || '', parseFloat(row[4]) || 0, 0]);
+                    // Estructura: A=Fecha | B=Detalle | C=Rubro | D=N°Comp | E=Ingreso | F=Egreso | G=ID
+                    const fechaRaw = String(row[0] || '');
+                    // La fecha puede ser número serial de Excel (ej: 46128) o ISO string
+                    let fecha = fechaRaw;
+                    if (!isNaN(fechaRaw) && fechaRaw.length <= 5) {
+                        const d = new Date((parseFloat(fechaRaw) - 25569) * 86400 * 1000);
+                        fecha = d.toISOString().slice(0, 10);
+                    } else if (fechaRaw.includes('T')) {
+                        fecha = fechaRaw.split('T')[0];
+                    }
+                    if (fecha >= desde && fecha <= hasta && (parseFloat(row[4]) || 0) > 0) {
+                        datos.push([fecha, 'Ingreso', row[2] || '', row[1] || '', parseFloat(row[4]) || 0, 0]);
                     }
                 }
                 for (let i = 1; i < egresos.length; i++) {
@@ -1123,9 +1142,25 @@
                 }
                 
                 const fechaFormateada = fecha.split('-').reverse().join('/');
-                const detalleCompleto = `${beneficiarioNombre} (${beneficiarioRama})${detalleAdicional ? ' - ' + detalleAdicional : ''}`;
-                const concepto = rubro === 'Cuota' ? cuota : rubro;
-                
+
+                // Cuota 1/2 → Afiliación 1°/2° cuota; otros rubros usan el rubro como concepto
+                let conceptoLabel;
+                if (rubro === 'Cuota') {
+                    conceptoLabel = cuota === 'Cuota 1' ? 'Afiliación 1° cuota' : 'Afiliación 2° cuota';
+                } else {
+                    conceptoLabel = rubro;
+                }
+
+                // Detalle planilla: cuotas/campamento usan nombre+rama; eventos/donaciones/subsidios usan detalle adicional
+                let detalleCompleto;
+                if (rubro === 'Cuota' || rubro === 'Campamento Invierno' || rubro === 'Campamento Verano') {
+                    detalleCompleto = `${beneficiarioNombre} (${beneficiarioRama})${detalleAdicional ? ' - ' + detalleAdicional : ''}`;
+                } else {
+                    detalleCompleto = detalleAdicional
+                        ? `${detalleAdicional}${beneficiarioNombre !== 'General' ? ' - ' + beneficiarioNombre : ''}`
+                        : (beneficiarioNombre !== 'General' ? beneficiarioNombre : rubro);
+                }
+
                 // Generar y subir imagen del comprobante
                 mostrarMensaje('ingreso-mensaje', '📸 Generando comprobante...', 'success');
                 const imagenLink = await generarYSubirImagen({
@@ -1133,7 +1168,9 @@
                     fecha: fechaFormateada,
                     beneficiario: beneficiarioNombre,
                     rama: beneficiarioRama,
-                    concepto: concepto,
+                    concepto: conceptoLabel,
+                    detalle: detalleAdicional,
+                    rubro: rubro,
                     monto: monto
                 });
                 
@@ -1145,8 +1182,9 @@
                     mostrarMensaje('ingreso-mensaje', '⚠️ No se pudo guardar el comprobante', 'warning');
                 }
                 
-                // Guardar en INGRESOS_unitario (solo 6 columnas)
-                const values = [[fecha, detalleCompleto, concepto, numeroComprobanteFinal, monto, '']];
+                // Guardar en INGRESOS_unitario
+                // Columnas reales de la hoja: A=Fecha | B=Detalle | C=Rubro | D=N°Comprobante | E=Ingreso | F=Egreso | G=BeneficiarioId (nuevo)
+                const values = [[fecha, detalleCompleto, conceptoLabel, numeroComprobanteFinal, monto, '', beneficiarioId || '']];
                 
                 const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/INGRESOS_unitario:append?valueInputOption=USER_ENTERED`, {
                     method: 'POST',
