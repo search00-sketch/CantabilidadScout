@@ -257,7 +257,10 @@
                             </div>
                             <div class="grid">
                                 <div class="form-group"><label>Monto *</label><input type="number" id="ingreso-monto" class="form-control" step="0.01" required></div>
-                                <div class="form-group"><label>N° Comprobante (opcional)</label><input type="text" id="ingreso-comprobante" class="form-control" placeholder="Dejar vacío para auto-numeración"></div>
+                                <div class="form-group" style="display:flex;align-items:center;gap:8px;padding:10px;background:#f9f5e7;border-radius:8px;border:1px dashed #DAA520">
+                                    <span style="font-size:1.2rem">🔢</span>
+                                    <span style="font-size:0.85rem;color:#8B4513">El número de comprobante se asigna automáticamente de forma correlativa</span>
+                                </div>
                             </div>
                             <div class="form-group"><label>Detalle adicional</label><textarea id="ingreso-detalle" class="form-control" rows="2"></textarea></div>
                             <div class="form-group">
@@ -558,20 +561,40 @@
             } catch(e) { console.error('Error cargando configuración:', e); }
         }
 
-        // ========== CARGAR ÚLTIMO NÚMERO DE COMPROBANTE ==========
-        async function cargarUltimoNumeroComprobante() {
+        // ========== OBTENER PRÓXIMO NÚMERO DE COMPROBANTE (siempre desde la planilla) ==========
+        // Consulta el máximo real en la planilla en el momento de guardar.
+        // Así si se borra un comprobante de prueba, el siguiente toma max+1 sin huecos.
+        async function obtenerProximoNumeroComprobante() {
             try {
-                const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/INGRESOS_unitario!D:D?key=${API_KEY}`);
-                const data = await res.json();
+                const [resIngresos, resComprobantes] = await Promise.all([
+                    fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/INGRESOS_unitario!D:D?key=${API_KEY}`),
+                    fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/COMPROBANTES!B:B?key=${API_KEY}`)
+                ]);
+                const dataIngresos = await resIngresos.json();
+                const dataComprobantes = await resComprobantes.json();
                 let maxNum = 0;
-                if (data.values && data.values.length > 1) {
-                    for (let i = 1; i < data.values.length; i++) {
-                        const num = parseInt(data.values[i][0]);
+                if (dataIngresos.values && dataIngresos.values.length > 1) {
+                    for (let i = 1; i < dataIngresos.values.length; i++) {
+                        const num = parseInt(dataIngresos.values[i][0]);
                         if (!isNaN(num) && num > maxNum) maxNum = num;
                     }
                 }
-                ultimoNumeroComprobante = maxNum;
-            } catch(e) { console.error(e); }
+                if (dataComprobantes.values && dataComprobantes.values.length > 1) {
+                    for (let i = 1; i < dataComprobantes.values.length; i++) {
+                        const num = parseInt(dataComprobantes.values[i][0]);
+                        if (!isNaN(num) && num > maxNum) maxNum = num;
+                    }
+                }
+                return maxNum + 1;
+            } catch(e) {
+                console.error('Error obteniendo número de comprobante:', e);
+                return null;
+            }
+        }
+
+        // Mantener para compatibilidad al cargar el dashboard (ya no se usa para numerar)
+        async function cargarUltimoNumeroComprobante() {
+            // No-op: el número se consulta en tiempo real al guardar
         }
 
         // ========== CÁLCULO DE SALDOS ==========
@@ -1068,7 +1091,6 @@
                 const fecha = document.getElementById('ingreso-fecha').value;
                 const rubro = document.getElementById('ingreso-rubro').value;
                 let monto = parseFloat(document.getElementById('ingreso-monto').value);
-                const comprobanteManual = document.getElementById('ingreso-comprobante').value;
                 const detalleAdicional = document.getElementById('ingreso-detalle').value;
                 const beneficiarioId = document.getElementById('ingreso-beneficiario').value;
                 const cuota = document.getElementById('ingreso-cuota')?.value || '';
@@ -1129,16 +1151,15 @@
                     }
                 }
                 
-                // Número de comprobante correlativo
-                let numeroComprobanteFinal;
-                if (comprobanteManual && !isNaN(parseInt(comprobanteManual))) {
-                    numeroComprobanteFinal = parseInt(comprobanteManual);
-                    if (numeroComprobanteFinal > ultimoNumeroComprobante) {
-                        ultimoNumeroComprobante = numeroComprobanteFinal;
-                    }
-                } else {
-                    ultimoNumeroComprobante++;
-                    numeroComprobanteFinal = ultimoNumeroComprobante;
+                // Número de comprobante: siempre consultar el máximo real en la planilla
+                // Así los comprobantes borrados no generan huecos ni se reutilizan números
+                mostrarMensaje('ingreso-mensaje', '🔢 Obteniendo número de comprobante...', 'success');
+                let numeroComprobanteFinal = await obtenerProximoNumeroComprobante();
+                if (!numeroComprobanteFinal) {
+                    mostrarMensaje('ingreso-mensaje', '❌ No se pudo obtener el número de comprobante', 'error');
+                    guardando = false;
+                    setLoading('btn-guardar-ingreso', false);
+                    return false;
                 }
                 
                 const fechaFormateada = fecha.split('-').reverse().join('/');
