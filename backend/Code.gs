@@ -186,7 +186,7 @@ function getMovimientos_() {
     const r = egr[i];
     if (!r[0] && !r[4]) continue;
     egresos.push([toISO_(r[0]), String(r[1] || ''), String(r[2] || ''),
-                  String(r[3] || ''), num_(r[4]), String(r[5] || '')]);
+                  String(r[3] || ''), num_(r[4]), String(r[5] || ''), String(r[8] || '')]);
   }
   return { ingresos: ingresos, egresos: egresos };
 }
@@ -259,6 +259,9 @@ function addEgreso_(p, user) {
   const monto = num_(p.monto);
   if (!p.fecha || !p.rubro || !(monto > 0)) throw new Error('Faltan campos obligatorios');
 
+  const rama = String(p.rama || '').trim();
+  if (p.rubro === 'Programa' && !rama) throw new Error('Falta la rama para un gasto de Programa');
+
   let linkArchivo = '';
   if (p.archivo && p.archivo.base64) {
     linkArchivo = subirArchivo_(p.archivo, FOLDER_EGRESOS);
@@ -266,7 +269,7 @@ function addEgreso_(p, user) {
 
   ss_().getSheetByName('EGRESOS').appendRow([
     p.fecha, String(p.rubro), String(p.detalle || ''), String(p.comprobante || ''),
-    monto, linkArchivo, user.email, new Date().toISOString()
+    monto, linkArchivo, user.email, new Date().toISOString(), rama
   ]);
   return { ok: true, linkArchivo: linkArchivo };
 }
