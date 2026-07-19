@@ -72,3 +72,13 @@ Los usuarios de la app NO necesitan acceso a la planilla — solo vos como dueñ
 - El popup del comprobante puede ser bloqueado por el navegador.
 - Renovación silenciosa del token para sesiones de más de 1 hora.
 - Borrar la columna Contraseña de USUARIOS (ya no cumple función).
+
+## Pendiente: Fondo de Programa por Rama
+
+Cambios de código ya hechos en este repo (backend/Code.gs y public/index.html). Faltan estos 3 pasos manuales para que tengan efecto:
+
+1. En la planilla → hoja EGRESOS → agregar el encabezado "Rama" en la celda I1.
+2. En la planilla → hoja CONFIG → agregar la fila: `monto_programa_por_beneficiario` | `10000`.
+3. En el editor de Apps Script (Extensiones → Apps Script desde la planilla) → reemplazar `addEgreso_` y el loop de egresos de `getMovimientos_` con el contenido de `backend/Code.gs` → Implementar → Administrar implementaciones → editar la implementación existente → Nueva versión → Implementar.
+
+Después de estos 3 pasos, hacer `firebase deploy --only hosting` para publicar el `index.html` actualizado.
