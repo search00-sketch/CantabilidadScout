@@ -367,7 +367,7 @@
                             <div class="grid">
                                 <div class="form-group"><label for="egreso-fecha">Fecha *</label><input type="date" id="egreso-fecha" class="form-control" required aria-required="true"></div>
                                 <div class="form-group"><label for="egreso-rubro">Rubro *</label>
-                                    <select id="egreso-rubro" class="form-control" required aria-required="true">
+                                    <select id="egreso-rubro" class="form-control" required aria-required="true" onchange="toggleCampoRamaEgreso()">
                                         <option value="">Seleccionar</option>
                                         <option value="Mantenimiento">Mantenimiento</option>
                                         <option value="Programa">Programa</option>
@@ -383,6 +383,17 @@
                                         <option value="Viáticos">Viáticos</option>
                                         <option value="Farmacia">Farmacia</option>
                                         <option value="Premios/Regalos">Premios/Regalos</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div id="campo-rama-egreso" class="hidden">
+                                <div class="form-group"><label for="egreso-rama">Rama *</label>
+                                    <select id="egreso-rama" class="form-control">
+                                        <option value="">Seleccionar</option>
+                                        <option>Manada</option>
+                                        <option>Unidad</option>
+                                        <option>Caminantes</option>
+                                        <option>Rovers</option>
                                     </select>
                                 </div>
                             </div>
@@ -821,6 +832,11 @@
             campoCuota.classList.toggle('hidden', rubro !== 'Cuota');
         }
 
+        function toggleCampoRamaEgreso() {
+            const rubro = document.getElementById('egreso-rubro').value;
+            document.getElementById('campo-rama-egreso').classList.toggle('hidden', rubro !== 'Programa');
+        }
+
         // ========== INFORMES ==========
         function formatearNumero(numero) {
             if (isNaN(numero)) return 0;
@@ -1111,10 +1127,15 @@
                 const detalle = document.getElementById('egreso-detalle').value;
                 const monto = parseFloat(document.getElementById('egreso-monto').value);
                 const comprobante = document.getElementById('egreso-comprobante').value;
+                const rama = document.getElementById('egreso-rama').value;
                 const archivoInput = document.getElementById('egreso-archivo').files[0];
 
                 if (!fecha || !rubro || !monto) {
                     mostrarMensaje('egreso-mensaje-container', 'Completá los campos obligatorios', 'error');
+                    return false;
+                }
+                if (rubro === 'Programa' && !rama) {
+                    mostrarMensaje('egreso-mensaje-container', 'Seleccioná la rama del gasto de Programa', 'error');
                     return false;
                 }
 
@@ -1132,11 +1153,12 @@
                 }
 
                 mostrarMensaje('egreso-mensaje-container', '💾 Guardando egreso...', 'info');
-                const r = await api('addEgreso', { fecha, rubro, detalle, comprobante, monto, archivo });
+                const r = await api('addEgreso', { fecha, rubro, detalle, comprobante, monto, archivo, rama });
 
                 mostrarMensaje('egreso-mensaje-container', '✅ Egreso guardado correctamente' + (r.linkArchivo ? ' (archivo adjunto)' : ''), 'success');
                 document.getElementById('form-egreso').reset();
                 document.getElementById('egreso-file-info').classList.add('hidden');
+                document.getElementById('campo-rama-egreso').classList.add('hidden');
                 await refrescarMovimientos();
                 cargarSaldos();
             } catch (e) {
