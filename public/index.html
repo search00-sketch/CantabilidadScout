@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Sistema de Gestión Contable - Grupo Scout San José Obrero N°466</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚜️</text></svg>">
+    <style>
+        /* === Variables CSS === */
+        :root {
+            --amarillo: #FFD700;
+            --amarillo-oscuro: #DAA520;
+            --marron: #8B4513;
+            --blanco: #FFFFFF;
+            --negro: #2C1810;
+            --gris-claro: #F5F5F5;
+            --exito: #10b981;
+            --error: #ef4444;
+            --advertencia: #f59e0b;
+        }
+
+        /* === Reset y estilos base === */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :focus-visible {
+            outline: 3px solid var(--marron);
+            outline-offset: 2px;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--amarillo) 0%, var(--amarillo-oscuro) 100%);
+            min-height: 100vh;
+            padding: 10px;
+        }
+
+        .container { max-width: 1200px; margin: 0 auto; }
+        .card {
+            background: var(--blanco);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 2px solid var(--marron);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .login-container { max-width: 400px; margin: 30px auto; }
+        .login-card {
+            background: var(--blanco);
+            border-radius: 15px;
+            padding: 25px;
+            border: 3px solid var(--marron);
+        }
+        .login-header { text-align: center; margin-bottom: 20px; }
+        .login-header h1 { color: var(--marron); font-size: 1.6rem; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 500; color: var(--marron); font-size: 0.9rem; }
+        .form-control {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--amarillo-oscuro);
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+        .btn-primary { background: var(--marron); color: var(--blanco); width: 100%; }
+        .btn-primary:hover { background: var(--amarillo); color: var(--marron); }
+        .btn-success { background: var(--marron); color: var(--blanco); }
+        .btn-danger { background: var(--negro); color: var(--blanco); }
+        .btn-sm { padding: 8px 12px; font-size: 0.85rem; }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 0.6s linear infinite;
+            margin-right: 8px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .nav-bar {
+            background: var(--marron);
+            padding: 10px 0;
+            margin-bottom: 15px;
+            border-radius: 10px;
+            border: 2px solid var(--amarillo);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .nav-bar .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .nav-links { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+        .nav-links a {
+            color: var(--blanco);
+            text-decoration: none;
+            padding: 6px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            white-space: nowrap;
+        }
+        .nav-links a:hover { background: var(--amarillo); color: var(--marron); }
+
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 15px; }
+        .stat-card { background: var(--blanco); border: 2px solid var(--marron); border-radius: 10px; padding: 12px; text-align: center; }
+        .stat-number { font-size: 1.5rem; font-weight: bold; color: var(--negro); }
+        .stat-card small { font-size: 0.7rem; }
+
+        .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        table { width: 100%; border-collapse: collapse; background: var(--blanco); border: 2px solid var(--marron); font-size: 0.85rem; min-width: 600px; }
+        th, td { padding: 10px 8px; text-align: left; border-bottom: 1px solid var(--amarillo); }
+        th { background: var(--marron); color: var(--blanco); }
+
+        .badge-success { background: #10b981; color: white; padding: 3px 8px; border-radius: 4px; display: inline-block; font-size: 0.75rem; }
+        .badge-warning { background: var(--amarillo); color: var(--marron); padding: 3px 8px; border-radius: 4px; display: inline-block; font-size: 0.75rem; }
+        .badge-danger { background: #ef4444; color: white; padding: 3px 8px; border-radius: 4px; display: inline-block; font-size: 0.75rem; }
+
+        .filters { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+        .filter-group { flex: 1; min-width: 120px; }
+
+        .hidden { display: none; }
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .mt-10 { margin-top: 10px; }
+        .mb-10 { margin-bottom: 10px; }
+
+        .alert {
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+            position: relative;
+            animation: slideDown 0.3s ease-out;
+        }
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .alert-error { background: #fed7d7; color: #742a2a; border-left: 4px solid var(--error); }
+        .alert-success { background: #c6f6d5; color: #22543d; border-left: 4px solid var(--exito); }
+        .alert-warning { background: #feebc8; color: #744210; border-left: 4px solid var(--advertencia); }
+        .alert-info { background: #e0f2fe; color: #075985; border-left: 4px solid #0ea5e9; }
+
+        .form-messages-container {
+            position: sticky;
+            bottom: 10px;
+            z-index: 1000;
+            margin-top: 15px;
+            background: transparent;
+        }
+
+        .user-info { font-size: 0.8rem; color: var(--blanco); background: #A0522D; padding: 5px 10px; border-radius: 20px; }
+
+        .menu-toggle {
+            display: none;
+            background: var(--marron);
+            color: var(--blanco);
+            border: 2px solid var(--amarillo);
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.2rem;
+        }
+
+        .file-info {
+            margin-top: 8px;
+            padding: 8px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            color: #666;
+            word-break: break-all;
+        }
+
+        .visually-hidden {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        .gsi-wrapper { display: flex; justify-content: center; }
+
+        @media (max-width: 768px) {
+            body { padding: 8px; }
+            .card { padding: 12px; }
+            .nav-links { display: none; width: 100%; flex-direction: column; align-items: center; }
+            .nav-links.show { display: flex; }
+            .menu-toggle { display: block; }
+            .nav-bar .container { flex-wrap: wrap; }
+            .stat-number { font-size: 1.2rem; }
+            .btn { padding: 10px 16px; }
+            .grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 480px) {
+            .grid { grid-template-columns: 1fr; }
+            .filters { flex-direction: column; }
+            .filter-group { min-width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="app">
+        <!-- PANTALLA DE LOGIN -->
+        <section id="login-screen" class="login-container" aria-label="Pantalla de inicio de sesión">
+            <div class="login-header">
+                <div aria-hidden="true" style="font-size: 3rem;">⚜️</div>
+                <h1>Grupo Scout<br>San José Obrero N°466</h1>
+                <p>Sistema de Gestión Contable</p>
+            </div>
+            <div class="login-card">
+                <h2 class="text-center mb-10">Acceso al Sistema</h2>
+                <div id="login-error" class="alert alert-error hidden" role="alert" aria-live="polite"></div>
+                <div id="g_id_onload"
+                     data-client_id="616578436911-bel2eqgcvtc0j6hldhtogis5av7vvsu3.apps.googleusercontent.com"
+                     data-callback="onCredential"
+                     data-auto_select="false"
+                     data-itp_support="true"></div>
+                <div class="g_id_signin gsi-wrapper"
+                     data-type="standard"
+                     data-theme="outline"
+                     data-size="large"
+                     data-text="continue_with"
+                     data-locale="es"></div>
+                <div class="text-center mt-10" style="font-size: 0.75rem;">
+                    <p>Solo usuarios autorizados</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- PANEL PRINCIPAL -->
+        <main id="dashboard-screen" class="hidden" aria-label="Panel de control principal">
+            <div class="nav-bar">
+                <div class="container">
+                    <div><h2 style="color: var(--amarillo); font-size: 1.2rem;">⚜️ Scout SJO</h2></div>
+                    <button class="menu-toggle" onclick="toggleMenu()" aria-label="Abrir menú de navegación" aria-expanded="false" aria-controls="nav-links">
+                        ☰ Menú
+                    </button>
+                    <nav id="nav-links" class="nav-links" aria-label="Navegación principal">
+                        <a href="#" role="button" onclick="showSection('dashboard'); return false;">Dashboard</a>
+                        <a href="#" role="button" onclick="showSection('ingresos'); return false;">Ingresos</a>
+                        <a href="#" role="button" onclick="showSection('egresos'); return false;">Egresos</a>
+                        <a href="#" role="button" onclick="showSection('deudores'); return false;">Deudores</a>
+                        <a href="#" role="button" onclick="showSection('informes'); return false;">Informes</a>
+                        <a href="#" role="button" onclick="logout(); return false;">Salir</a>
+                    </nav>
+                    <div id="user-email" class="user-info" aria-live="polite"></div>
+                </div>
+            </div>
+
+            <div class="container">
+                <!-- Dashboard Section -->
+                <section id="dashboard-section" aria-labelledby="dashboard-title">
+                    <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 15px;">
+                        <h2 id="dashboard-title" style="font-size: 1.3rem;">Panel Principal</h2>
+                        <div id="fecha-actual" style="font-size: 0.85rem;"></div>
+                    </div>
+                    <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+                        <article class="stat-card"><h3 style="font-size: 0.85rem;">TOTAL ACTIVOS</h3><div class="stat-number" id="saldo-total" style="font-size: 2rem;">$ ...</div><small>Saldo inicial ± movimientos</small></article>
+                        <article class="stat-card"><h3 style="font-size: 0.85rem;">PENDIENTE DE COBRO</h3><div class="stat-number" id="total-pendiente" style="color: var(--error);">$ 0</div><small id="familias-al-dia">Calculando...</small></article>
+                    </div>
+                    <div class="grid" style="grid-template-columns: repeat(4,1fr);">
+                        <div class="card text-center" onclick="showSection('ingresos')" role="button" tabindex="0" aria-label="Ir a cargar ingreso"><span aria-hidden="true" style="font-size: 1.5rem;">💰</span><p style="font-size: 0.8rem;">Cargar Ingreso</p></div>
+                        <div class="card text-center" onclick="showSection('egresos')" role="button" tabindex="0" aria-label="Ir a cargar egreso"><span aria-hidden="true" style="font-size: 1.5rem;">💸</span><p style="font-size: 0.8rem;">Cargar Egreso</p></div>
+                        <div class="card text-center" onclick="showSection('deudores')" role="button" tabindex="0" aria-label="Ir a ver deudores"><span aria-hidden="true" style="font-size: 1.5rem;">👥</span><p style="font-size: 0.8rem;">Ver Deudores</p></div>
+                        <div class="card text-center" onclick="showSection('informes')" role="button" tabindex="0" aria-label="Ir a informes"><span aria-hidden="true" style="font-size: 1.5rem;">📊</span><p style="font-size: 0.8rem;">Informes</p></div>
+                    </div>
+                    <div class="card">
+                        <h3 style="margin-bottom: 10px;">🏕️ Campamento de Verano — Anotados (<span id="campver-count">0</span>)</h3>
+                        <div class="table-responsive">
+                            <table>
+                                <caption class="visually-hidden">Beneficiarios que pagaron el campamento de verano</caption>
+                                <thead><tr><th scope="col">Beneficiario</th><th scope="col">Rama</th><th scope="col">Pagado</th><th scope="col">Estado</th></tr></thead>
+                                <tbody id="campver-tbody"><tr><td colspan="4" class="text-center">Cargando...</td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Sección Ingresos -->
+                <section id="ingresos-section" class="hidden" aria-labelledby="ingresos-title">
+                    <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;">
+                        <h2 id="ingresos-title" style="font-size: 1.3rem;">Cargar Ingreso</h2>
+                        <button class="btn btn-primary btn-sm" onclick="showSection('dashboard')">Volver</button>
+                    </div>
+                    <div class="card">
+                        <form id="form-ingreso" onsubmit="return guardarIngreso(event)" novalidate>
+                            <div class="grid">
+                                <div class="form-group"><label for="ingreso-fecha">Fecha *</label><input type="date" id="ingreso-fecha" class="form-control" required aria-required="true"></div>
+                                <div class="form-group"><label for="ingreso-rubro">Rubro *</label>
+                                    <select id="ingreso-rubro" class="form-control" required aria-required="true" onchange="toggleCamposBeneficiario()">
+                                        <option value="">Seleccionar</option>
+                                        <option value="Cuota">Cuota</option>
+                                        <option value="Campamento Invierno">Campamento Invierno</option>
+                                        <option value="Campamento Verano">Campamento Verano</option>
+                                        <option value="Eventos">Eventos</option>
+                                        <option value="Donaciones">Donaciones</option>
+                                        <option value="Subsidios">Subsidios</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div id="campos-beneficiario" class="hidden">
+                                <div class="grid">
+                                    <div class="form-group"><label for="ingreso-beneficiario">Beneficiario *</label><select id="ingreso-beneficiario" class="form-control"></select></div>
+                                    <div id="campo-cuota" class="hidden"><div class="form-group"><label for="ingreso-cuota">Cuota *</label><select id="ingreso-cuota" class="form-control"><option value="Cuota 1">Primera cuota</option><option value="Cuota 2">Segunda cuota</option></select></div></div>
+                                </div>
+                            </div>
+                            <div class="grid">
+                                <div class="form-group"><label for="ingreso-monto">Monto *</label><input type="number" id="ingreso-monto" class="form-control" step="0.01" required aria-required="true"></div>
+                                <div class="form-group" style="display:flex;align-items:center;gap:8px;padding:10px;background:#f9f5e7;border-radius:8px;border:1px dashed #DAA520">
+                                    <span aria-hidden="true" style="font-size:1.2rem">🔢</span>
+                                    <span style="font-size:0.85rem;color:#8B4513">El número de comprobante se asigna automáticamente de forma correlativa</span>
+                                </div>
+                            </div>
+                            <div class="form-group"><label for="ingreso-detalle">Detalle adicional</label><textarea id="ingreso-detalle" class="form-control" rows="2"></textarea></div>
+                            <div class="form-group">
+                                <label for="ingreso-archivo">Comprobante escaneado (PDF o Imagen)</label>
+                                <input type="file" id="ingreso-archivo" class="form-control" accept="image/*,application/pdf" onchange="mostrarInfoArchivo(this, 'ingreso-file-info')">
+                                <div id="ingreso-file-info" class="file-info hidden" aria-live="polite"></div>
+                            </div>
+                            <div class="text-right">
+                                <button type="reset" class="btn" style="background:#ddd;">Cancelar</button>
+                                <button type="submit" class="btn btn-success" id="btn-guardar-ingreso">Guardar Ingreso</button>
+                            </div>
+                            <div id="ingreso-mensaje-container" class="form-messages-container"></div>
+                        </form>
+                    </div>
+                </section>
+
+                <!-- Sección Egresos -->
+                <section id="egresos-section" class="hidden" aria-labelledby="egresos-title">
+                    <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;">
+                        <h2 id="egresos-title" style="font-size: 1.3rem;">Cargar Egreso</h2>
+                        <button class="btn btn-primary btn-sm" onclick="showSection('dashboard')">Volver</button>
+                    </div>
+                    <div class="card">
+                        <form id="form-egreso" onsubmit="return guardarEgreso(event)" novalidate>
+                            <div class="grid">
+                                <div class="form-group"><label for="egreso-fecha">Fecha *</label><input type="date" id="egreso-fecha" class="form-control" required aria-required="true"></div>
+                                <div class="form-group"><label for="egreso-rubro">Rubro *</label>
+                                    <select id="egreso-rubro" class="form-control" required aria-required="true">
+                                        <option value="">Seleccionar</option>
+                                        <option value="Mantenimiento">Mantenimiento</option>
+                                        <option value="Programa">Programa</option>
+                                        <option value="Limpieza">Limpieza</option>
+                                        <option value="Merienda">Merienda</option>
+                                        <option value="Campamento">Campamento</option>
+                                        <option value="Eventos">Eventos</option>
+                                        <option value="Formación">Formación</option>
+                                        <option value="Donaciones">Donaciones</option>
+                                        <option value="Proveduría">Proveduría</option>
+                                        <option value="Librería">Librería</option>
+                                        <option value="Distrito">Distrito</option>
+                                        <option value="Viáticos">Viáticos</option>
+                                        <option value="Farmacia">Farmacia</option>
+                                        <option value="Premios/Regalos">Premios/Regalos</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group"><label for="egreso-detalle">Detalle *</label><input type="text" id="egreso-detalle" class="form-control" required aria-required="true"></div>
+                            <div class="grid">
+                                <div class="form-group"><label for="egreso-monto">Monto *</label><input type="number" id="egreso-monto" class="form-control" step="0.01" required aria-required="true"></div>
+                                <div class="form-group"><label for="egreso-comprobante">N° Comprobante</label><input type="text" id="egreso-comprobante" class="form-control"></div>
+                            </div>
+                            <div class="form-group">
+                                <label for="egreso-archivo">Archivo (PDF o Imagen)</label>
+                                <input type="file" id="egreso-archivo" class="form-control" accept="image/*,application/pdf" onchange="mostrarInfoArchivo(this, 'egreso-file-info')">
+                                <div id="egreso-file-info" class="file-info hidden" aria-live="polite"></div>
+                            </div>
+                            <div class="text-right">
+                                <button type="reset" class="btn" style="background:#ddd;">Cancelar</button>
+                                <button type="submit" class="btn btn-danger" id="btn-guardar-egreso">Guardar Egreso</button>
+                            </div>
+                            <div id="egreso-mensaje-container" class="form-messages-container"></div>
+                        </form>
+                    </div>
+                </section>
+
+                <!-- Sección Deudores -->
+                <section id="deudores-section" class="hidden" aria-labelledby="deudores-title">
+                    <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;">
+                        <h2 id="deudores-title" style="font-size: 1.3rem;">Estado de Cuentas</h2>
+                        <button class="btn btn-success btn-sm" onclick="descargarDeudoresExcel()" aria-label="Descargar lista de deudores en Excel">📥 Excel</button>
+                    </div>
+                    <div class="card">
+                        <div class="filters">
+                            <div class="filter-group"><label for="filtro-rama">Rama:</label><select id="filtro-rama" class="form-control" onchange="filtrarDeudores()"><option value="TODAS">Todas</option><option>Manada</option><option>Unidad</option><option>Caminantes</option><option>Rovers</option></select></div>
+                            <div class="filter-group"><label for="filtro-estado">Estado:</label><select id="filtro-estado" class="form-control" onchange="filtrarDeudores()"><option value="TODOS">Todos</option><option value="PENDIENTE">Con deuda</option><option value="AL_DIA">Al día</option></select></div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="table-responsive">
+                            <table id="tabla-deudores">
+                                <caption class="visually-hidden">Listado de deudores por rama y estado de pago</caption>
+                                <thead><tr><th scope="col">Beneficiario</th><th scope="col">Rama</th><th scope="col">Cuota</th><th scope="col">Camp. Invierno</th><th scope="col">Camp. Verano</th><th scope="col">Total Pagado</th><th scope="col">Total Pendiente</th></tr></thead>
+                                <tbody id="deudores-tbody"><tr><td colspan="7" class="text-center">Cargando...</td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Sección Informes -->
+                <section id="informes-section" class="hidden" aria-labelledby="informes-title">
+                    <h2 id="informes-title" style="font-size: 1.3rem; margin-bottom: 15px;">Generar Informes</h2>
+
+                    <div class="card">
+                        <h3>📒 Libro de Caja</h3>
+                        <div class="grid" style="grid-template-columns: 1fr 1fr auto;">
+                            <div class="form-group"><label for="caja-desde">Desde</label><input type="date" id="caja-desde" class="form-control"></div>
+                            <div class="form-group"><label for="caja-hasta">Hasta</label><input type="date" id="caja-hasta" class="form-control"></div>
+                            <button class="btn btn-primary" style="align-self: flex-end;" onclick="descargarLibroCaja()">Descargar Excel</button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3>📊 Ejecución Presupuestaria</h3>
+                        <div class="grid" style="grid-template-columns: 1fr auto auto; gap: 10px;">
+                            <div class="form-group"><label for="periodo">Período</label>
+                                <select id="periodo" class="form-control">
+                                    <option value="anual">Anual (Mar 2026 - Mar 2027)</option>
+                                    <option value="legal">Legal (Jul 2025 - Jun 2026)</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-primary" onclick="descargarEjecucion()">Descargar Excel</button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3>📉 Ejecución por Categoría</h3>
+                        <div class="grid" style="grid-template-columns: 1fr auto auto; gap: 10px;">
+                            <div class="form-group"><label for="periodo-categoria">Período</label>
+                                <select id="periodo-categoria" class="form-control">
+                                    <option value="anual">Anual (Mar 2026 - Mar 2027)</option>
+                                    <option value="legal">Legal (Jul 2025 - Jun 2026)</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-primary" onclick="cargarEjecucionEnTabla()">Actualizar Tabla</button>
+                        </div>
+                        <div class="table-responsive mt-10">
+                            <table id="tabla-ejecucion">
+                                <caption class="visually-hidden">Ejecución presupuestaria por categoría</caption>
+                                <thead><tr><th scope="col">Categoría</th><th scope="col">Presupuesto</th><th scope="col">Ejecutado</th><th scope="col">Diferencia</th><th scope="col">%</th></tr></thead>
+                                <tbody id="tabla-ejecucion-body"><tr><td colspan="5" class="text-center">Seleccioná un período y hacé clic en "Actualizar Tabla"</td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <script>
+        // ========== CONFIGURACIÓN ==========
+        // El único dato "público" es el CLIENT_ID (es público por diseño de OAuth).
+        // Ya NO hay API key ni ID de planilla acá: todo el acceso a datos pasa por el backend.
+        const CLIENT_ID = '616578436911-bel2eqgcvtc0j6hldhtogis5av7vvsu3.apps.googleusercontent.com';
+        const API_URL = 'https://script.google.com/macros/s/AKfycbyWmF09kfByzy9fIuIyvZXwCVcpmTgJGBiwNv2HEjyhH8vpzNw2MYuhqE-iw4FepEvDGw/exec';
+
+        let currentUser = null;
+        let beneficiariosData = [];
+        let categoriasData = [];
+        let configData = {};
+        let movimientos = { ingresos: [], egresos: [] };
+        let guardando = false;
+
+        // ========== UTILIDADES ==========
+        function escapeHtml(s) {
+            return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+                ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        }
+
+        // Config numérica segura: respeta el 0 (no lo pisa con el default)
+        function numConfig(key, def) {
+            const v = configData[key];
+            if (v === undefined || v === null || v === '') return def;
+            const n = Number(v);
+            return isNaN(n) ? def : n;
+        }
+
+        function archivoABase64(file) {
+            return new Promise((resolve, reject) => {
+                const r = new FileReader();
+                r.onload = () => resolve(String(r.result).split(',')[1]);
+                r.onerror = () => reject(new Error('No se pudo leer el archivo'));
+                r.readAsDataURL(file);
+            });
+        }
+
+        function toggleMenu() {
+            const navLinks = document.getElementById('nav-links');
+            const menuBtn = document.querySelector('.menu-toggle');
+            const isExpanded = navLinks.classList.contains('show');
+            navLinks.classList.toggle('show');
+            if (menuBtn) menuBtn.setAttribute('aria-expanded', !isExpanded);
+        }
+
+        function mostrarMensaje(containerId, texto, tipo) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `alert alert-${tipo}`;
+            msgDiv.setAttribute('role', tipo === 'error' ? 'alert' : 'status');
+            msgDiv.setAttribute('aria-live', 'polite');
+            msgDiv.textContent = texto;
+            container.innerHTML = '';
+            container.appendChild(msgDiv);
+            setTimeout(() => {
+                if (msgDiv.parentNode === container) container.innerHTML = '';
+            }, 5000);
+        }
+
+        function setLoading(buttonId, loading) {
+            const btn = document.getElementById(buttonId);
+            if (!btn) return;
+            if (loading) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="loading-spinner"></span> Guardando...';
+            } else {
+                btn.disabled = false;
+                btn.innerHTML = btn.id === 'btn-guardar-ingreso' ? 'Guardar Ingreso' : 'Guardar Egreso';
+            }
+        }
+
+        function mostrarInfoArchivo(input, infoId) {
+            const infoDiv = document.getElementById(infoId);
+            if (!input.files || !input.files[0]) {
+                infoDiv.classList.add('hidden');
+                return;
+            }
+            const file = input.files[0];
+            const fileSize = (file.size / 1024).toFixed(2);
+            infoDiv.textContent = `📎 ${file.name} (${fileSize} KB)`;
+            infoDiv.classList.remove('hidden');
+        }
+
+        // ========== AUTENTICACIÓN (Google Identity Services) ==========
+        // Callback del botón de Google. Recibe un ID token (JWT) que el backend
+        // verifica en el servidor contra la lista USUARIOS de la planilla.
+        function onCredential(response) {
+            try {
+                const token = response.credential;
+                const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+                sessionStorage.setItem('id_token', token);
+                sessionStorage.setItem('user_email', payload.email);
+                sessionStorage.setItem('token_exp', String(payload.exp * 1000));
+                currentUser = payload.email;
+                document.getElementById('login-error').classList.add('hidden');
+                mostrarDashboard();
+            } catch (e) {
+                mostrarErrorLogin('Error procesando el inicio de sesión. Intentá de nuevo.');
+            }
+        }
+
+        function sesionValida() {
+            const t = sessionStorage.getItem('id_token');
+            const exp = parseInt(sessionStorage.getItem('token_exp') || '0', 10);
+            return !!t && Date.now() < exp - 60000;
+        }
+
+        function mostrarErrorLogin(msg) {
+            const el = document.getElementById('login-error');
+            el.textContent = msg;
+            el.classList.remove('hidden');
+        }
+
+        function sesionVencida(msg) {
+            sessionStorage.clear();
+            currentUser = null;
+            document.getElementById('dashboard-screen').classList.add('hidden');
+            document.getElementById('login-screen').classList.remove('hidden');
+            mostrarErrorLogin(msg || 'La sesión expiró. Iniciá sesión nuevamente.');
+        }
+
+        function logout() {
+            if (confirm('¿Cerrar sesión?')) {
+                sessionStorage.clear();
+                currentUser = null;
+                if (window.google && google.accounts && google.accounts.id) {
+                    google.accounts.id.disableAutoSelect();
+                }
+                document.getElementById('dashboard-screen').classList.add('hidden');
+                document.getElementById('login-screen').classList.remove('hidden');
+                document.getElementById('login-error').classList.add('hidden');
+            }
+        }
+
+        // ========== CAPA DE API ==========
+        // Content-Type text/plain evita el preflight CORS que Apps Script no responde.
+        async function api(action, payload) {
+            if (!sesionValida()) {
+                sesionVencida();
+                throw new Error('Sesión vencida');
+            }
+            let res;
+            try {
+                res = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ token: sessionStorage.getItem('id_token'), action, payload: payload || {} })
+                });
+            } catch (e) {
+                throw new Error('No se pudo conectar con el servidor');
+            }
+            if (!res.ok) throw new Error('Error del servidor (' + res.status + ')');
+            const data = await res.json();
+            if (!data.ok) {
+                if (String(data.error).indexOf('AUTH') === 0) {
+                    sesionVencida(String(data.error).replace('AUTH: ', ''));
+                }
+                throw new Error(String(data.error).replace('AUTH: ', ''));
+            }
+            return data.data;
+        }
+
+        // ========== CARGA INICIAL ==========
+        async function mostrarDashboard() {
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('dashboard-screen').classList.remove('hidden');
+            document.getElementById('fecha-actual').textContent = new Date().toLocaleDateString('es-AR');
+            document.getElementById('user-email').textContent = currentUser || 'Usuario';
+            try {
+                const data = await api('bootstrap');
+                configData = data.config || {};
+                beneficiariosData = data.beneficiarios || [];
+                categoriasData = data.categorias || [];
+                movimientos = data.movimientos || { ingresos: [], egresos: [] };
+                poblarBeneficiarios();
+                cargarSaldos();
+                cargarDeudores();
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function refrescarMovimientos() {
+            try {
+                movimientos = await api('getMovimientos');
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function poblarBeneficiarios() {
+            const select = document.getElementById('ingreso-beneficiario');
+            let html = '<option value="">Seleccionar</option>';
+            beneficiariosData.forEach(row => {
+                html += `<option value="${escapeHtml(row[0])}">${escapeHtml(row[1])}, ${escapeHtml(row[2])} (${escapeHtml(row[3])})</option>`;
+            });
+            select.innerHTML = html;
+        }
+
+        async function showSection(s) {
+            ['dashboard', 'ingresos', 'egresos', 'deudores', 'informes'].forEach(sec =>
+                document.getElementById(`${sec}-section`).classList.add('hidden'));
+            document.getElementById(`${s}-section`).classList.remove('hidden');
+            if (['dashboard', 'deudores', 'informes'].includes(s)) {
+                await refrescarMovimientos();
+                if (s === 'dashboard') cargarSaldos();
+                if (s === 'deudores') cargarDeudores();
+                if (s === 'informes') cargarEjecucionEnTabla();
+            }
+        }
+
+        // ========== SALDOS Y DEUDORES (sobre datos ya normalizados) ==========
+        // Calcula el estado de pagos de cada beneficiario (compartido por dashboard y deudores).
+        // Reglas:
+        //  - La afiliación solo la deben las ramas listadas en CONFIG 'ramas_afiliacion'
+        //    (por defecto: Manada, Unidad, Caminantes, Rovers). Dirigentes/otros: no aplica.
+        //  - Los campamentos solo los deben los ANOTADOS (quienes ya pagaron al menos una cuota).
+        //  - numConfig respeta el 0: si un campamento vale $0, no genera deuda.
+        function calcularEstadosBeneficiarios() {
+            const cuotaTotal = numConfig('total_anual', 0);
+            const campInvTotal = numConfig('campamento_invierno', 0);
+            const campVerTotal = numConfig('campamento_verano', 0);
+            const ramasAfiliacion = String(configData['ramas_afiliacion'] || 'Manada,Unidad,Caminantes,Rovers')
+                .split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+            return beneficiariosData.map(ben => {
+                const id = String(ben[0]);
+                let cuotaPagado = 0, campInvPagado = 0, campVerPagado = 0;
+                for (let row of movimientos.ingresos) {
+                    if (String(row[6] || '') !== id) continue;
+                    const rowRubro = String(row[2] || '');
+                    const rowMonto = Number(row[4]) || 0;
+                    if (rowRubro.includes('Afiliación') || rowRubro === 'Cuota 1' || rowRubro === 'Cuota 2') cuotaPagado += rowMonto;
+                    else if (rowRubro === 'Campamento Invierno') campInvPagado += rowMonto;
+                    else if (rowRubro === 'Campamento Verano') campVerPagado += rowMonto;
+                }
+                const ramaLc = String(ben[3] || '').trim().toLowerCase();
+                const pagaAfiliacion = ramasAfiliacion.some(r => r === ramaLc || ramaLc.indexOf(r) >= 0 || r.indexOf(ramaLc) >= 0);
+                const anotadoInv = campInvPagado > 0;
+                const anotadoVer = campVerPagado > 0;
+                const cuotaPendiente = pagaAfiliacion ? Math.max(0, cuotaTotal - cuotaPagado) : 0;
+                const campInvPendiente = anotadoInv ? Math.max(0, campInvTotal - campInvPagado) : 0;
+                const campVerPendiente = anotadoVer ? Math.max(0, campVerTotal - campVerPagado) : 0;
+                return {
+                    id: id,
+                    nombre: `${ben[1]}, ${ben[2]}`,
+                    rama: ben[3],
+                    pagaAfiliacion, anotadoInv, anotadoVer,
+                    cuotaPagado, campInvPagado, campVerPagado,
+                    cuotaPendiente, campInvPendiente, campVerPendiente,
+                    totalPagado: cuotaPagado + campInvPagado + campVerPagado,
+                    totalPendiente: cuotaPendiente + campInvPendiente + campVerPendiente
+                };
+            });
+        }
+
+        function cargarSaldos() {
+            const saldoInicial = numConfig('total_inicial', 0);
+            let totalIngresos = 0, totalEgresos = 0;
+            movimientos.ingresos.forEach(r => { totalIngresos += Number(r[4]) || 0; });
+            movimientos.egresos.forEach(r => { totalEgresos += Number(r[4]) || 0; });
+            const saldoActual = saldoInicial + totalIngresos - totalEgresos;
+            document.getElementById('saldo-total').textContent = `$ ${saldoActual.toLocaleString('es-AR')}`;
+
+            const estados = calcularEstadosBeneficiarios();
+
+            // Pendiente de cobro + familias al día
+            const totalPendiente = estados.reduce((s, e) => s + e.totalPendiente, 0);
+            const alDia = estados.filter(e => e.totalPendiente === 0).length;
+            document.getElementById('total-pendiente').textContent = `$ ${totalPendiente.toLocaleString('es-AR')}`;
+            document.getElementById('familias-al-dia').textContent = `${alDia} de ${estados.length} al día`;
+
+            // Anotados al Campamento de Verano (pagaron algo)
+            const anotados = estados.filter(e => e.campVerPagado > 0)
+                .sort((a, b) => a.nombre.localeCompare(b.nombre));
+            document.getElementById('campver-count').textContent = anotados.length;
+            const tbody = document.getElementById('campver-tbody');
+            let html = '';
+            for (let e of anotados) {
+                const estado = e.campVerPendiente === 0
+                    ? '<span class="badge-success">Completo</span>'
+                    : `<span class="badge-warning">Parcial (debe $${e.campVerPendiente.toLocaleString()})</span>`;
+                html += `<tr><td>${escapeHtml(e.nombre)}</td><td>${escapeHtml(e.rama)}</td><td>$${e.campVerPagado.toLocaleString()}</td><td>${estado}</td></tr>`;
+            }
+            tbody.innerHTML = html || '<tr><td colspan="4" class="text-center">Todavía no hay anotados</td></tr>';
+        }
+
+        function cargarDeudores() {
+            const tbody = document.getElementById('deudores-tbody');
+            let html = '';
+            for (let e of calcularEstadosBeneficiarios()) {
+                const badgeCuota = !e.pagaAfiliacion
+                    ? '<span class="badge-warning">No aplica</span>'
+                    : (e.cuotaPendiente === 0 ? '<span class="badge-success">Pagado</span>' : `<span class="badge-danger">$${e.cuotaPendiente.toLocaleString()}</span>`);
+                const badgeInv = !e.anotadoInv
+                    ? '<span class="badge-warning">No anotado</span>'
+                    : (e.campInvPendiente === 0 ? '<span class="badge-success">Pagado</span>' : `<span class="badge-danger">$${e.campInvPendiente.toLocaleString()}</span>`);
+                const badgeVer = !e.anotadoVer
+                    ? '<span class="badge-warning">No anotado</span>'
+                    : (e.campVerPendiente === 0 ? '<span class="badge-success">Pagado</span>' : `<span class="badge-danger">$${e.campVerPendiente.toLocaleString()}</span>`);
+                html += `
+                    <tr>
+                        <td>${escapeHtml(e.nombre)}</td>
+                        <td>${escapeHtml(e.rama)}</td>
+                        <td>${badgeCuota}</td>
+                        <td>${badgeInv}</td>
+                        <td>${badgeVer}</td>
+                        <td>$${e.totalPagado.toLocaleString()}</td>
+                        <td>$${e.totalPendiente.toLocaleString()}</td>
+                    </tr>
+                `;
+            }
+            tbody.innerHTML = html || '<tr><td colspan="7" class="text-center">Sin beneficiarios activos</td></tr>';
+        }
+
+        function filtrarDeudores() {
+            const ramaFiltro = document.getElementById('filtro-rama').value;
+            const estadoFiltro = document.getElementById('filtro-estado').value;
+            const filas = document.querySelectorAll('#deudores-tbody tr');
+            filas.forEach(fila => {
+                if (fila.cells.length < 7) return;
+                const rama = fila.cells[1].textContent;
+                const pendiente = parseFloat(fila.cells[6].textContent.replace(/[^0-9.-]+/g, '')) || 0;
+                let mostrar = true;
+                if (ramaFiltro !== 'TODAS' && rama !== ramaFiltro) mostrar = false;
+                if (estadoFiltro === 'PENDIENTE' && pendiente === 0) mostrar = false;
+                if (estadoFiltro === 'AL_DIA' && pendiente > 0) mostrar = false;
+                fila.style.display = mostrar ? '' : 'none';
+            });
+        }
+
+        function toggleCamposBeneficiario() {
+            const rubro = document.getElementById('ingreso-rubro').value;
+            const camposBeneficiario = document.getElementById('campos-beneficiario');
+            const campoCuota = document.getElementById('campo-cuota');
+            const necesitaBeneficiario = ['Cuota', 'Campamento Invierno', 'Campamento Verano'].includes(rubro);
+            camposBeneficiario.classList.toggle('hidden', !necesitaBeneficiario);
+            campoCuota.classList.toggle('hidden', rubro !== 'Cuota');
+        }
+
+        // ========== INFORMES ==========
+        function formatearNumero(numero) {
+            if (isNaN(numero)) return 0;
+            return Math.round(numero * 100) / 100;
+        }
+
+        function cargarEjecucionEnTabla() {
+            const periodo = document.getElementById('periodo-categoria').value;
+            const fechaInicio = periodo === 'anual' ? '2026-03-01' : '2025-07-01';
+            const fechaFin = periodo === 'anual' ? '2027-03-01' : '2026-06-30';
+
+            const ejecutado = {};
+            for (let row of movimientos.egresos) {
+                const fecha = String(row[0] || '');
+                if (fecha >= fechaInicio && fecha <= fechaFin) {
+                    const categoria = row[1] || 'Otros';
+                    ejecutado[categoria] = formatearNumero((ejecutado[categoria] || 0) + (Number(row[4]) || 0));
+                }
+            }
+
+            const presupuestos = {};
+            categoriasData.forEach(cat => {
+                presupuestos[cat[1]] = formatearNumero(Number(cat[3]) || 0);
+            });
+
+            const todasCategorias = new Set([...Object.keys(presupuestos), ...Object.keys(ejecutado)]);
+            const tbody = document.getElementById('tabla-ejecucion-body');
+            let html = '';
+            for (let cat of Array.from(todasCategorias).sort()) {
+                const pres = presupuestos[cat] || 0;
+                const ejec = ejecutado[cat] || 0;
+                const diff = formatearNumero(pres - ejec);
+                const porcentaje = pres > 0 ? ((ejec / pres) * 100).toFixed(1) : 0;
+                html += `
+                    <tr>
+                        <td>${escapeHtml(cat)}</td>
+                        <td>$${pres.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                        <td>$${ejec.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                        <td>$${Math.abs(diff).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})} ${diff < 0 ? '(exceso)' : ''}</td>
+                        <td>${porcentaje}%</td>
+                    </tr>
+                `;
+            }
+            tbody.innerHTML = html || '<tr><td colspan="5" class="text-center">Sin datos en el período</td></tr>';
+        }
+
+        function descargarExcel(nombreArchivo, encabezados, datos) {
+            const wsData = [encabezados, ...datos];
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Informe');
+            XLSX.writeFile(wb, `${nombreArchivo}.xlsx`);
+        }
+
+        function descargarDeudoresExcel() {
+            const filas = document.querySelectorAll('#deudores-tbody tr');
+            const datos = [];
+            for (let fila of filas) {
+                if (fila.style.display !== 'none' && fila.cells.length >= 7) {
+                    const c = fila.cells;
+                    datos.push([c[0].textContent, c[1].textContent, c[2].textContent, c[3].textContent, c[4].textContent, c[5].textContent, c[6].textContent]);
+                }
+            }
+            descargarExcel('deudores_scout', ['Beneficiario', 'Rama', 'Cuota', 'Camp. Invierno', 'Camp. Verano', 'Total Pagado', 'Total Pendiente'], datos);
+        }
+
+        async function descargarLibroCaja() {
+            const desde = document.getElementById('caja-desde').value;
+            const hasta = document.getElementById('caja-hasta').value;
+            if (!desde || !hasta) { alert('Seleccioná las fechas'); return; }
+            await refrescarMovimientos();
+
+            const datos = [];
+            for (let row of movimientos.ingresos) {
+                const fecha = String(row[0] || '');
+                const monto = Number(row[4]) || 0;
+                if (fecha >= desde && fecha <= hasta && monto > 0) {
+                    datos.push([fecha, 'Ingreso', row[2] || '', row[1] || '', monto, 0]);
+                }
+            }
+            for (let row of movimientos.egresos) {
+                const fecha = String(row[0] || '');
+                if (fecha >= desde && fecha <= hasta) {
+                    datos.push([fecha, 'Egreso', row[1] || '', row[2] || '', 0, Number(row[4]) || 0]);
+                }
+            }
+            datos.sort((a, b) => a[0].localeCompare(b[0]));
+            descargarExcel('libro_caja', ['Fecha', 'Tipo', 'Rubro/Detalle', 'Concepto/Comprobante', 'Ingreso', 'Egreso'], datos);
+        }
+
+        async function descargarEjecucion() {
+            const periodo = document.getElementById('periodo').value;
+            const fechaInicio = periodo === 'anual' ? '2026-03-01' : '2025-07-01';
+            const fechaFin = periodo === 'anual' ? '2027-03-01' : '2026-06-30';
+            await refrescarMovimientos();
+
+            let totalIngresos = 0, totalEgresos = 0;
+            for (let row of movimientos.ingresos) {
+                const fecha = String(row[0] || '');
+                if (fecha >= fechaInicio && fecha <= fechaFin) totalIngresos += Number(row[4]) || 0;
+            }
+            for (let row of movimientos.egresos) {
+                const fecha = String(row[0] || '');
+                if (fecha >= fechaInicio && fecha <= fechaFin) totalEgresos += Number(row[4]) || 0;
+            }
+            descargarExcel(`ejecucion_${periodo}`, ['Concepto', 'Monto'], [
+                ['Total Ingresos', totalIngresos],
+                ['Total Egresos', totalEgresos],
+                ['Diferencia', totalIngresos - totalEgresos]
+            ]);
+        }
+
+        // ========== COMPROBANTE (imagen generada en el navegador) ==========
+        async function generarImagenComprobante(datos) {
+            const elemento = document.createElement('div');
+            elemento.style.position = 'absolute';
+            elemento.style.left = '-9999px';
+            elemento.style.top = '-9999px';
+            elemento.style.backgroundColor = 'white';
+            elemento.style.padding = '20px';
+            elemento.style.width = '400px';
+            const esc = escapeHtml;
+            elemento.innerHTML = `
+            <div style="max-width:400px;margin:0 auto;background:white;border-radius:20px;overflow:hidden;border:1px solid #DAA520;font-family:'Segoe UI',Arial,sans-serif">
+                <div style="background:linear-gradient(135deg,#8B4513 0%,#A0522D 100%);color:white;text-align:center;padding:25px 20px">
+                    <div style="font-size:2rem;margin-bottom:10px;">⚜️</div>
+                    <div style="font-size:1.5rem;font-weight:bold;letter-spacing:2px">SCOUT N°466</div>
+                    <div style="font-size:0.8rem;opacity:0.9;margin-top:5px">SAN JOSÉ OBRERO - D III - Z V</div>
+                </div>
+                <div style="padding:25px">
+                    <div style="margin-bottom:15px;padding-bottom:10px;border-bottom:1px dashed #ddd">
+                        <div style="font-size:0.75rem;color:#8B4513;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px">N° COMPROBANTE</div>
+                        <div style="font-size:1.1rem;font-weight:500;color:#2C1810">${esc(datos.numero)}</div>
+                    </div>
+                    <div style="margin-bottom:15px;padding-bottom:10px;border-bottom:1px dashed #ddd">
+                        <div style="font-size:0.75rem;color:#8B4513;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px">FECHA</div>
+                        <div style="font-size:1.1rem;font-weight:500;color:#2C1810">${esc(datos.fecha)}</div>
+                    </div>
+                    <div style="margin-bottom:15px;padding-bottom:10px;border-bottom:1px dashed #ddd">
+                        <div style="font-size:0.75rem;color:#8B4513;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px">RECIBÍ DE</div>
+                        <div style="font-size:1.1rem;font-weight:500;color:#2C1810">${datos.beneficiario !== 'General' ? esc(datos.beneficiario) : '-'}</div>
+                    </div>
+                    ${(datos.rubro === 'Cuota' || datos.rubro === 'Campamento Invierno' || datos.rubro === 'Campamento Verano') ? `
+                    <div style="margin-bottom:15px;padding-bottom:10px;border-bottom:1px dashed #ddd">
+                        <div style="font-size:0.75rem;color:#8B4513;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px">RAMA</div>
+                        <div style="font-size:1.1rem;font-weight:500;color:#2C1810">${esc(datos.rama)}</div>
+                    </div>` : ''}
+                    <div style="margin-bottom:15px;padding-bottom:10px;border-bottom:1px dashed #ddd">
+                        <div style="font-size:0.75rem;color:#8B4513;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px">CONCEPTO</div>
+                        <div style="font-size:1.1rem;font-weight:500;color:#2C1810">${esc(datos.concepto)}</div>
+                    </div>
+                    ${datos.detalle ? `
+                    <div style="margin-bottom:15px;padding-bottom:10px;border-bottom:1px dashed #ddd">
+                        <div style="font-size:0.75rem;color:#8B4513;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px">DESCRIPCIÓN</div>
+                        <div style="font-size:1rem;font-weight:400;color:#2C1810">${esc(datos.detalle)}</div>
+                    </div>` : ''}
+                    <div style="font-size:1.8rem;font-weight:bold;color:#2C1810;text-align:center;margin:20px 0">$ ${datos.monto.toLocaleString('es-AR')}</div>
+                    <div style="text-align:center;margin:20px 0"><span style="display:inline-block;background:#10b981;color:white;padding:8px 25px;border-radius:30px;font-weight:bold;letter-spacing:2px">✅ PAGADO</span></div>
+                </div>
+                <div style="background:#f5f5f5;padding:15px;text-align:center;font-size:0.7rem;color:#666">
+                    ¡Gracias por tu colaboración!<br>Grupo Scout San José Obrero N°466 - D III - Z V
+                </div>
+            </div>
+            `;
+            document.body.appendChild(elemento);
+            try {
+                const canvas = await html2canvas(elemento, { scale: 2, backgroundColor: '#ffffff', logging: false });
+                return canvas.toDataURL('image/png').split(',')[1]; // base64 sin prefijo
+            } finally {
+                document.body.removeChild(elemento);
+            }
+        }
+
+        // ========== GUARDAR INGRESO ==========
+        async function guardarIngreso(event) {
+            event.preventDefault();
+            if (!sesionValida()) { sesionVencida(); return false; }
+            if (guardando) { mostrarMensaje('ingreso-mensaje-container', '⚠️ Ya se está guardando, esperá un momento...', 'warning'); return false; }
+
+            guardando = true;
+            setLoading('btn-guardar-ingreso', true);
+
+            try {
+                const fecha = document.getElementById('ingreso-fecha').value;
+                const rubro = document.getElementById('ingreso-rubro').value;
+                const monto = parseFloat(document.getElementById('ingreso-monto').value);
+                const detalleAdicional = document.getElementById('ingreso-detalle').value;
+                const beneficiarioId = document.getElementById('ingreso-beneficiario').value;
+                const cuota = document.getElementById('ingreso-cuota')?.value || '';
+                const archivoAdjunto = document.getElementById('ingreso-archivo').files[0];
+
+                if (!fecha || !rubro || !monto) {
+                    mostrarMensaje('ingreso-mensaje-container', 'Completá los campos obligatorios', 'error');
+                    return false;
+                }
+
+                // Validación de monto esperado (solo si el valor configurado es > 0).
+                // Cuota: debe coincidir con la mitad del total anual.
+                // Campamentos: se pagan en cuotas, así que los pagos parciales son válidos;
+                // solo advierte si el monto SUPERA el total configurado.
+                let montoEsperado = 0, avisar = false;
+                if (rubro === 'Cuota') {
+                    montoEsperado = numConfig('total_anual', 0) / 2;
+                    avisar = montoEsperado > 0 && Math.abs(monto - montoEsperado) > 0.01;
+                } else if (rubro === 'Campamento Invierno') {
+                    montoEsperado = numConfig('campamento_invierno', 0);
+                    avisar = montoEsperado > 0 && monto - montoEsperado > 0.01;
+                } else if (rubro === 'Campamento Verano') {
+                    montoEsperado = numConfig('campamento_verano', 0);
+                    avisar = montoEsperado > 0 && monto - montoEsperado > 0.01;
+                }
+                if (avisar) {
+                    if (!confirm(`El monto ingresado ($${monto}) no coincide con lo esperado ($${montoEsperado}). ¿Deseas continuar?`)) {
+                        return false;
+                    }
+                }
+
+                let archivo = null;
+                if (archivoAdjunto) {
+                    if (archivoAdjunto.size > 10 * 1024 * 1024) {
+                        mostrarMensaje('ingreso-mensaje-container', '⚠️ El archivo es demasiado grande (máx 10MB). Se guardará el ingreso sin adjunto.', 'warning');
+                    } else {
+                        archivo = {
+                            name: archivoAdjunto.name,
+                            mimeType: archivoAdjunto.type,
+                            base64: await archivoABase64(archivoAdjunto)
+                        };
+                    }
+                }
+
+                mostrarMensaje('ingreso-mensaje-container', '💾 Guardando ingreso...', 'info');
+                // El ingreso se guarda PRIMERO (con número correlativo asignado en el servidor).
+                // El comprobante se genera después: nunca queda un comprobante sin registro.
+                const r = await api('addIngreso', { fecha, rubro, cuota, beneficiarioId, detalleAdicional, monto, archivo });
+
+                mostrarMensaje('ingreso-mensaje-container', `✅ Ingreso N° ${r.numero} guardado. Generando comprobante...`, 'success');
+
+                try {
+                    const fechaFormateada = fecha.split('-').reverse().join('/');
+                    const base64 = await generarImagenComprobante({
+                        numero: r.numero,
+                        fecha: fechaFormateada,
+                        beneficiario: r.beneficiario,
+                        rama: r.rama,
+                        concepto: r.concepto,
+                        detalle: detalleAdicional,
+                        rubro: rubro,
+                        monto: monto
+                    });
+                    const up = await api('uploadComprobante', { numero: r.numero, fecha, beneficiario: r.beneficiario, monto, base64 });
+                    if (up.link) {
+                        mostrarMensaje('ingreso-mensaje-container', '✅ Ingreso y comprobante guardados correctamente', 'success');
+                        window.open(up.link, '_blank');
+                    }
+                } catch (e2) {
+                    mostrarMensaje('ingreso-mensaje-container', '⚠️ El ingreso se guardó, pero falló el comprobante: ' + e2.message, 'warning');
+                }
+
+                document.getElementById('form-ingreso').reset();
+                document.getElementById('campos-beneficiario').classList.add('hidden');
+                document.getElementById('campo-cuota').classList.add('hidden');
+                document.getElementById('ingreso-file-info').classList.add('hidden');
+                await refrescarMovimientos();
+                cargarSaldos();
+                cargarDeudores();
+            } catch (e) {
+                console.error('Error:', e);
+                mostrarMensaje('ingreso-mensaje-container', '❌ ' + e.message, 'error');
+            } finally {
+                guardando = false;
+                setLoading('btn-guardar-ingreso', false);
+            }
+            return false;
+        }
+
+        // ========== GUARDAR EGRESO ==========
+        async function guardarEgreso(event) {
+            event.preventDefault();
+            if (!sesionValida()) { sesionVencida(); return false; }
+            if (guardando) { mostrarMensaje('egreso-mensaje-container', '⚠️ Ya se está guardando, esperá un momento...', 'warning'); return false; }
+
+            guardando = true;
+            setLoading('btn-guardar-egreso', true);
+
+            try {
+                const fecha = document.getElementById('egreso-fecha').value;
+                const rubro = document.getElementById('egreso-rubro').value;
+                const detalle = document.getElementById('egreso-detalle').value;
+                const monto = parseFloat(document.getElementById('egreso-monto').value);
+                const comprobante = document.getElementById('egreso-comprobante').value;
+                const archivoInput = document.getElementById('egreso-archivo').files[0];
+
+                if (!fecha || !rubro || !monto) {
+                    mostrarMensaje('egreso-mensaje-container', 'Completá los campos obligatorios', 'error');
+                    return false;
+                }
+
+                let archivo = null;
+                if (archivoInput) {
+                    if (archivoInput.size > 10 * 1024 * 1024) {
+                        mostrarMensaje('egreso-mensaje-container', '⚠️ El archivo es demasiado grande (máx 10MB). Se guardará el egreso sin adjunto.', 'warning');
+                    } else {
+                        archivo = {
+                            name: archivoInput.name,
+                            mimeType: archivoInput.type,
+                            base64: await archivoABase64(archivoInput)
+                        };
+                    }
+                }
+
+                mostrarMensaje('egreso-mensaje-container', '💾 Guardando egreso...', 'info');
+                const r = await api('addEgreso', { fecha, rubro, detalle, comprobante, monto, archivo });
+
+                mostrarMensaje('egreso-mensaje-container', '✅ Egreso guardado correctamente' + (r.linkArchivo ? ' (archivo adjunto)' : ''), 'success');
+                document.getElementById('form-egreso').reset();
+                document.getElementById('egreso-file-info').classList.add('hidden');
+                await refrescarMovimientos();
+                cargarSaldos();
+            } catch (e) {
+                console.error('Error:', e);
+                mostrarMensaje('egreso-mensaje-container', '❌ ' + e.message, 'error');
+            } finally {
+                guardando = false;
+                setLoading('btn-guardar-egreso', false);
+            }
+            return false;
+        }
+
+        // ========== INICIALIZACIÓN ==========
+        window.onload = () => {
+            document.getElementById('periodo-categoria').addEventListener('change', cargarEjecucionEnTabla);
+            if (sesionValida()) {
+                currentUser = sessionStorage.getItem('user_email');
+                mostrarDashboard();
+            }
+        };
+    </script>
+    <!-- GSI se carga al final: onCredential ya está definida cuando la librería se inicializa -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+</body>
+</html>
