@@ -286,7 +286,10 @@
                     </div>
                     <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
                         <article class="stat-card"><h3 style="font-size: 0.85rem;">TOTAL ACTIVOS</h3><div class="stat-number" id="saldo-total" style="font-size: 2rem;">$ ...</div><small>Saldo inicial ± movimientos</small></article>
-                        <article class="stat-card"><h3 style="font-size: 0.85rem;">PENDIENTE DE COBRO</h3><div class="stat-number" id="total-pendiente" style="color: var(--error);">$ 0</div><small id="familias-al-dia">Calculando...</small></article>
+                        <article class="stat-card" style="text-align:left;">
+                            <h3 style="font-size: 0.85rem; text-align:center;">FONDO DE PROGRAMA POR RAMA</h3>
+                            <div id="fondos-rama" style="font-size: 0.8rem; margin-top: 8px;">Calculando...</div>
+                        </article>
                     </div>
                     <div class="grid" style="grid-template-columns: repeat(4,1fr);">
                         <div class="card text-center" onclick="showSection('ingresos')" role="button" tabindex="0" aria-label="Ir a cargar ingreso"><span aria-hidden="true" style="font-size: 1.5rem;">💰</span><p style="font-size: 0.8rem;">Cargar Ingreso</p></div>
@@ -758,12 +761,6 @@
 
             const estados = calcularEstadosBeneficiarios();
 
-            // Pendiente de cobro + familias al día
-            const totalPendiente = estados.reduce((s, e) => s + e.totalPendiente, 0);
-            const alDia = estados.filter(e => e.totalPendiente === 0).length;
-            document.getElementById('total-pendiente').textContent = `$ ${totalPendiente.toLocaleString('es-AR')}`;
-            document.getElementById('familias-al-dia').textContent = `${alDia} de ${estados.length} al día`;
-
             // Anotados al Campamento de Verano (pagaron algo)
             const anotados = estados.filter(e => e.campVerPagado > 0)
                 .sort((a, b) => a.nombre.localeCompare(b.nombre));
@@ -777,6 +774,38 @@
                 html += `<tr><td>${escapeHtml(e.nombre)}</td><td>${escapeHtml(e.rama)}</td><td>$${e.campVerPagado.toLocaleString()}</td><td>${estado}</td></tr>`;
             }
             tbody.innerHTML = html || '<tr><td colspan="4" class="text-center">Todavía no hay anotados</td></tr>';
+
+            cargarFondosPorRama();
+        }
+
+        function calcularFondosPorRama() {
+            const RAMAS = ['Manada', 'Unidad', 'Caminantes', 'Rovers'];
+            const tasa = numConfig('monto_programa_por_beneficiario', 0);
+            const conteo = {}, gasto = {};
+            beneficiariosData.forEach(b => {
+                const r = String(b[3] || '').trim();
+                conteo[r] = (conteo[r] || 0) + 1;
+            });
+            movimientos.egresos.forEach(row => {
+                if (String(row[1] || '') !== 'Programa') return;
+                const r = String(row[6] || '').trim();
+                if (r) gasto[r] = (gasto[r] || 0) + (Number(row[4]) || 0);
+            });
+            return RAMAS.map(r => {
+                const asignado = tasa * (conteo[r] || 0);
+                const gastado = gasto[r] || 0;
+                return { rama: r, asignado, gastado, restante: asignado - gastado };
+            });
+        }
+
+        function cargarFondosPorRama() {
+            document.getElementById('fondos-rama').innerHTML = calcularFondosPorRama().map(d => {
+                const color = d.restante < 0 ? 'var(--error)' : 'var(--negro)';
+                return `<div style="display:flex;justify-content:space-between;padding:2px 0;">
+                            <span>${escapeHtml(d.rama)}</span>
+                            <span style="color:${color};font-weight:600;">$${d.restante.toLocaleString('es-AR')}</span>
+                        </div>`;
+            }).join('');
         }
 
         function cargarDeudores() {
