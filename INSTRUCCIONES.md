@@ -10,7 +10,7 @@
 - **index.html** final generado con la URL del backend ya incluida.
 
 URL del backend:
-`https://script.google.com/macros/s/AKfycbxF6bo2KWh2ggLcMDjyuTLoFcbk1GEPRRCk1BcMogKpUaM9yC5osCgRcJjQbSY753zo/exec`
+`https://script.google.com/macros/s/AKfycbwF8dBiSAatoJ1YH8repnHDoDLqx0laYUe7YT4C6FVuzG8WB7zPLn1uL2GZ7JCD0ymWGA/exec`
 
 ⚠️ Esta URL cambia si alguna vez se crea una **implementación nueva** en vez de editar la existente y subir una "Nueva versión" desde Administrar implementaciones. Si el frontend deja de recibir cambios del backend, lo primero a revisar es si esta URL sigue siendo la vigente.
 
