@@ -81,4 +81,6 @@ Cambios de código ya hechos en este repo (backend/Code.gs y public/index.html).
 2. En la planilla → hoja CONFIG → agregar la fila: `monto_programa_por_beneficiario` | `10000`.
 3. En el editor de Apps Script (Extensiones → Apps Script desde la planilla) → reemplazar `addEgreso_` y el loop de egresos de `getMovimientos_` con el contenido de `backend/Code.gs` → Implementar → Administrar implementaciones → editar la implementación existente → Nueva versión → Implementar.
 
+**Limitación importante:** Los egresos con Rubro="Programa" registrados *antes* de agregar la columna Rama tendrán esa celda vacía para siempre y no se acumularán en el fondo de ninguna rama. Por lo tanto, el saldo "restante" de cada rama será preciso únicamente para gastos de Programa posteriores al rollout — a menos que se rellene manualmente la columna Rama en esas filas históricas.
+
 Después de estos 3 pasos, hacer `firebase deploy --only hosting` para publicar el `index.html` actualizado.
