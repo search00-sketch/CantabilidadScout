@@ -72,3 +72,13 @@ Los usuarios de la app NO necesitan acceso a la planilla — solo vos como dueñ
 - El popup del comprobante puede ser bloqueado por el navegador.
 - Renovación silenciosa del token para sesiones de más de 1 hora.
 - Borrar la columna Contraseña de USUARIOS (ya no cumple función).
+
+## Pendiente: Carga de Nómina para Beneficiarios
+
+Cambios de código ya hechos en este repo (`backend/Code.gs` y `public/index.html`). Falta este paso manual para que tengan efecto:
+
+1. En el editor de Apps Script (Extensiones → Apps Script desde la planilla) → agregar el nuevo `case 'actualizarBeneficiarios'` en `ejecutar_`, y las funciones `validarBeneficiarios_` y `actualizarBeneficiarios_` (ver `backend/Code.gs`) → Implementar → Administrar implementaciones → editar la implementación existente → Nueva versión → Implementar.
+
+No hace falta ningún cambio manual en la planilla: `BENEFICIARIOS` ya tiene las columnas que se usan (A-E), y la fila `beneficiarios_actualizado_en` en `CONFIG` se crea sola la primera vez que se confirma una carga.
+
+Después de este paso, hacer `firebase deploy --only hosting` para publicar el `index.html` actualizado con la nueva sección "Beneficiarios".
