@@ -79,6 +79,12 @@ Cambios de código ya hechos en este repo (`backend/Code.gs` y `public/index.htm
 
 1. En el editor de Apps Script (Extensiones → Apps Script desde la planilla) → agregar el nuevo `case 'actualizarBeneficiarios'` en `ejecutar_`, y las funciones `validarBeneficiarios_` y `actualizarBeneficiarios_` (ver `backend/Code.gs`) → Implementar → Administrar implementaciones → editar la implementación existente → Nueva versión → Implementar.
 
-No hace falta ningún cambio manual en la planilla: `BENEFICIARIOS` ya tiene las columnas que se usan (A-E), y la fila `beneficiarios_actualizado_en` en `CONFIG` se crea sola la primera vez que se confirma una carga.
+No hace falta cambiar la estructura de columnas de la planilla: `BENEFICIARIOS` ya tiene las columnas que se usan (A-E), y las filas `beneficiarios_actualizado_en`/`beneficiarios_actualizado_por` en `CONFIG` se crean solas la primera vez que se confirma una carga. Sí hace falta el paso manual siguiente.
+
+2. **Excepción de rama para un caso puntual (paso manual pendiente, hacer ahora):** en la nómina real exportada, se detectó una beneficiaria activa cuya única fila tiene la columna `Función` en "Representante Juvenil de Grupo a la Asamblea Distrital" en vez de su rama real, así que la carga la descarta (comportamiento correcto en general, pero en este caso concreto excluye a una beneficiaria activa). Agregar en la pestaña `CONFIG` una fila nueva con clave `excepciones_rama_dni` y el DNI/rama correspondientes (confirmado por el dirigente a cargo — el valor exacto a usar quedó fuera de este documento por tratarse del DNI de una persona menor de edad; pedíselo a quien te pasó estas instrucciones si no lo tenés a mano).
+
+   Mecanismo general (para futuros casos similares, sin tocar código): el valor de `excepciones_rama_dni` acepta varios DNI separados por `;`, cada uno con el formato `dni:rama` — por ejemplo `11111111:Caminantes;22222222:Rovers` (valores de ejemplo, no reales). Cualquier DNI listado ahí fuerza esa rama al cargar la nómina, sin importar qué diga la columna Función para esa persona. Para agregar una excepción nueva alcanza con editar esta fila de `CONFIG` a mano; no requiere ningún cambio de código ni un nuevo deploy.
+
+3. **Antes de la primera carga real:** duplicá/hacé una copia de respaldo de la pestaña `BENEFICIARIOS` en la planilla (clic derecho en la pestaña → "Duplicar") antes de confirmar la primera carga real de nómina desde la app — es un reemplazo destructivo, y el historial de versiones de Google Sheets es la única forma de deshacerlo si algo sale mal.
 
 Después de este paso, hacer `firebase deploy --only hosting` para publicar el `index.html` actualizado con la nueva sección "Beneficiarios".
