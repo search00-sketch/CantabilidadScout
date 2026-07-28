@@ -38,7 +38,7 @@ De cada fila del archivo se usan solo:
 
 ## Frontend (`public/index.html`)
 
-- Se agrega SheetJS vía CDN (`<script src="https://cdn.sheetjs.com/xlsx-<versión>/package/dist/xlsx.full.min.js">`, con el número de versión fijado al implementar — no "latest") para parsear `.xlsx` y `.csv` en el navegador. Es la única dependencia externa de la app.
+- SheetJS ya está cargado en `public/index.html:481` (`xlsx-0.20.2`, usado hoy por `descargarExcel()` para exportar informes) — no se agrega ninguna dependencia nueva. Se reutiliza `XLSX.read()` / `XLSX.utils.sheet_to_json()` para parsear el `.xlsx`/`.csv` subido, en el navegador.
 - Nuevo ítem de menú **"Beneficiarios"**, junto a Dashboard/Ingresos/Egresos/Deudores/Informes.
 - Nueva sección con:
   1. Input de archivo (`accept=".xlsx,.csv"`).
