@@ -765,7 +765,7 @@
             const reader = new FileReader();
             reader.onload = (e) => {
                 try {
-                    const wb = XLSX.read(e.target.result, { type: 'array' });
+                    const wb = XLSX.read(e.target.result, { type: 'array', codepage: 65001 });
                     const hoja = wb.Sheets[wb.SheetNames[0]];
                     const filas = XLSX.utils.sheet_to_json(hoja, { defval: '' });
                     if (!filas.length || !('Dni' in filas[0]) || !('Nombre' in filas[0]) || !('Función' in filas[0])) {
