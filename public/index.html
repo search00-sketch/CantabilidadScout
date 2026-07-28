@@ -755,6 +755,18 @@
             return { validas, porRama, descartadas, errores, duplicados };
         }
 
+        // Decodifica los bytes crudos de un CSV probando primero UTF-8 estricto (falla si
+        // encuentra secuencias de bytes inválidas) y, si falla, asume Windows-1252/CP1252.
+        // Así se soporta tanto UTF-8 (con o sin BOM — el BOM se descarta automáticamente)
+        // como CSVs legados exportados en CP1252, sin adivinar a ciegas.
+        function decodificarTextoNomina(arrayBuffer) {
+            try {
+                return new TextDecoder('utf-8', { fatal: true }).decode(arrayBuffer);
+            } catch (e) {
+                return new TextDecoder('windows-1252').decode(arrayBuffer);
+            }
+        }
+
         let filasNominaValidas = [];
 
         function onArchivoNominaSeleccionado(event) {
@@ -765,7 +777,10 @@
             const reader = new FileReader();
             reader.onload = (e) => {
                 try {
-                    const wb = XLSX.read(e.target.result, { type: 'array', codepage: 65001 });
+                    const esCsv = /\.csv$/i.test(file.name);
+                    const wb = esCsv
+                        ? XLSX.read(decodificarTextoNomina(e.target.result), { type: 'string' })
+                        : XLSX.read(e.target.result, { type: 'array' });
                     const hoja = wb.Sheets[wb.SheetNames[0]];
                     const filas = XLSX.utils.sheet_to_json(hoja, { defval: '' });
                     if (!filas.length || !('Dni' in filas[0]) || !('Nombre' in filas[0]) || !('Función' in filas[0])) {
