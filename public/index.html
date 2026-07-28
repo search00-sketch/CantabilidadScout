@@ -715,17 +715,22 @@
             select.innerHTML = html;
         }
 
-        const FUNCION_A_RAMA = { 'Lobato / Lobezna': 'Manada', 'Scout': 'Unidad', 'Caminante': 'Caminantes', 'Rover': 'Rovers' };
+        // Object.create(null): sin prototipo, así una Función/DNI igual a "constructor" o "toString"
+        // no resuelve a un método heredado en vez de dar "no encontrado".
+        const FUNCION_A_RAMA = Object.assign(Object.create(null),
+            { 'Lobato / Lobezna': 'Manada', 'Scout': 'Unidad', 'Caminante': 'Caminantes', 'Rover': 'Rovers' });
+        const RAMAS_VALIDAS = ['Manada', 'Unidad', 'Caminantes', 'Rovers'];
 
         // Parsea el valor de la clave CONFIG "excepciones_rama_dni" (formato "dni:rama;dni:rama;...")
-        // en un mapa { dni: rama }. Ver INSTRUCCIONES.md para el mecanismo general.
+        // en un mapa { dni: rama }. Ver INSTRUCCIONES.md para el mecanismo general. Entradas con una
+        // rama fuera de las 4 válidas se ignoran (en vez de fallar recién al confirmar la carga).
         function parsearExcepcionesRama(valor) {
-            const mapa = {};
+            const mapa = Object.create(null);
             String(valor || '').split(';').forEach(par => {
                 const partes = par.split(':');
                 const dni = (partes[0] || '').trim();
                 const rama = (partes[1] || '').trim();
-                if (dni && rama) mapa[dni] = rama;
+                if (dni && RAMAS_VALIDAS.includes(rama)) mapa[dni] = rama;
             });
             return mapa;
         }
@@ -745,7 +750,7 @@
                 const dni = String(f['Dni'] || '').trim();
                 const nombreCompleto = String(f['Nombre'] || '').trim();
                 const funcion = String(f['Función'] || '').trim();
-                const rama = (excepcionesRama || {})[dni] || FUNCION_A_RAMA[funcion];
+                const rama = (excepcionesRama || Object.create(null))[dni] || FUNCION_A_RAMA[funcion];
                 if (!rama) { descartadas++; return; }
 
                 const idxComa = nombreCompleto.indexOf(',');
