@@ -271,6 +271,7 @@
                         <a href="#" role="button" onclick="showSection('egresos'); return false;">Egresos</a>
                         <a href="#" role="button" onclick="showSection('deudores'); return false;">Deudores</a>
                         <a href="#" role="button" onclick="showSection('informes'); return false;">Informes</a>
+                        <a href="#" role="button" onclick="showSection('beneficiarios'); return false;">Beneficiarios</a>
                         <a href="#" role="button" onclick="logout(); return false;">Salir</a>
                     </nav>
                     <div id="user-email" class="user-info" aria-live="polite"></div>
@@ -425,6 +426,38 @@
                                 <tbody id="deudores-tbody"><tr><td colspan="7" class="text-center">Cargando...</td></tr></tbody>
                             </table>
                         </div>
+                    </div>
+                </section>
+
+                <!-- Sección Beneficiarios -->
+                <section id="beneficiarios-section" class="hidden" aria-labelledby="beneficiarios-title">
+                    <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;">
+                        <h2 id="beneficiarios-title" style="font-size: 1.3rem;">Beneficiarios</h2>
+                        <button class="btn btn-primary btn-sm" onclick="showSection('dashboard')">Volver</button>
+                    </div>
+                    <div class="card">
+                        <p style="font-size: 0.85rem; margin-bottom: 12px;">Subí la nómina exportada del sistema de Scouts de Argentina (Excel o CSV) para reemplazar la lista de beneficiarios activos.</p>
+                        <div class="form-group">
+                            <label for="nomina-archivo">Archivo de nómina</label>
+                            <input type="file" id="nomina-archivo" class="form-control" accept=".xlsx,.xls,.csv" onchange="onArchivoNominaSeleccionado(event)">
+                        </div>
+                        <div id="nomina-actualizado" style="font-size: 0.8rem; color: var(--marron); margin-bottom: 10px;"></div>
+                        <div id="nomina-preview" class="hidden">
+                            <div class="table-responsive">
+                                <table>
+                                    <caption class="visually-hidden">Vista previa de la nómina a cargar, cantidad de beneficiarios por rama</caption>
+                                    <thead><tr><th scope="col">Rama</th><th scope="col">Cantidad</th></tr></thead>
+                                    <tbody id="nomina-preview-tbody"></tbody>
+                                </table>
+                            </div>
+                            <p id="nomina-preview-descartadas" style="font-size: 0.85rem; margin-top: 8px;"></p>
+                            <p id="nomina-preview-errores" style="font-size: 0.85rem; color: var(--error);"></p>
+                            <div class="text-right" style="margin-top: 10px;">
+                                <button type="button" class="btn" style="background:#ddd;" onclick="cancelarCargaNomina()">Cancelar</button>
+                                <button type="button" class="btn btn-success" id="btn-confirmar-nomina" onclick="confirmarCargaNomina()" disabled>Confirmar carga</button>
+                            </div>
+                        </div>
+                        <div id="nomina-mensaje-container" class="form-messages-container"></div>
                     </div>
                 </section>
 
@@ -659,6 +692,7 @@
                 poblarBeneficiarios();
                 cargarSaldos();
                 cargarDeudores();
+                mostrarFechaActualizacionNomina();
             } catch (e) {
                 console.error(e);
             }
@@ -681,8 +715,122 @@
             select.innerHTML = html;
         }
 
+        const FUNCION_A_RAMA = { 'Lobato / Lobezna': 'Manada', 'Scout': 'Unidad', 'Caminante': 'Caminantes', 'Rover': 'Rovers' };
+
+        // Función pura: recibe filas en formato XLSX.utils.sheet_to_json (objetos con las
+        // columnas del archivo como propiedades) y devuelve las filas ya mapeadas al formato
+        // de BENEFICIARIOS, agrupadas por rama, junto con los contadores de descartes/errores.
+        function procesarFilasNomina(filas) {
+            const porRama = { Manada: 0, Unidad: 0, Caminantes: 0, Rovers: 0 };
+            const indicePorDni = new Map();
+            const validas = [];
+            let descartadas = 0, errores = 0, duplicados = 0;
+
+            filas.forEach(f => {
+                const dni = String(f['Dni'] || '').trim();
+                const nombreCompleto = String(f['Nombre'] || '').trim();
+                const funcion = String(f['Función'] || '').trim();
+                const rama = FUNCION_A_RAMA[funcion];
+                if (!rama) { descartadas++; return; }
+
+                const idxComa = nombreCompleto.indexOf(',');
+                if (!dni || !/^\d+$/.test(dni) || idxComa < 0) { errores++; return; }
+                const apellido = nombreCompleto.slice(0, idxComa).trim();
+                const nombre = nombreCompleto.slice(idxComa + 1).trim();
+                if (!apellido || !nombre) { errores++; return; }
+
+                const fila = [dni, apellido, nombre, rama];
+                if (indicePorDni.has(dni)) {
+                    const posAnterior = indicePorDni.get(dni);
+                    porRama[validas[posAnterior][3]]--;
+                    validas[posAnterior] = fila;
+                    duplicados++;
+                } else {
+                    indicePorDni.set(dni, validas.length);
+                    validas.push(fila);
+                }
+                porRama[rama]++;
+            });
+
+            return { validas, porRama, descartadas, errores, duplicados };
+        }
+
+        let filasNominaValidas = [];
+
+        function onArchivoNominaSeleccionado(event) {
+            const file = event.target.files[0];
+            document.getElementById('nomina-mensaje-container').innerHTML = '';
+            if (!file) { cancelarCargaNomina(); return; }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const wb = XLSX.read(e.target.result, { type: 'array' });
+                    const hoja = wb.Sheets[wb.SheetNames[0]];
+                    const filas = XLSX.utils.sheet_to_json(hoja, { defval: '' });
+                    if (!filas.length || !('Dni' in filas[0]) || !('Nombre' in filas[0]) || !('Función' in filas[0])) {
+                        mostrarMensaje('nomina-mensaje-container', '❌ El archivo no tiene las columnas esperadas (Dni, Nombre, Función)', 'error');
+                        cancelarCargaNomina();
+                        return;
+                    }
+                    mostrarVistaPreviaNomina(procesarFilasNomina(filas));
+                } catch (err) {
+                    console.error(err);
+                    mostrarMensaje('nomina-mensaje-container', '❌ No se pudo leer el archivo: ' + err.message, 'error');
+                    cancelarCargaNomina();
+                }
+            };
+            reader.onerror = () => mostrarMensaje('nomina-mensaje-container', '❌ No se pudo leer el archivo', 'error');
+            reader.readAsArrayBuffer(file);
+        }
+
+        function mostrarVistaPreviaNomina(resultado) {
+            filasNominaValidas = resultado.validas;
+            const RAMAS = ['Manada', 'Unidad', 'Caminantes', 'Rovers'];
+            document.getElementById('nomina-preview-tbody').innerHTML = RAMAS.map(r =>
+                `<tr><td>${escapeHtml(r)}</td><td>${resultado.porRama[r]}</td></tr>`
+            ).join('');
+            document.getElementById('nomina-preview-descartadas').textContent =
+                `${resultado.descartadas} fila(s) descartada(s) (función no reconocida)` +
+                (resultado.duplicados ? ` — ${resultado.duplicados} DNI duplicado(s), se conservó la última fila` : '');
+            document.getElementById('nomina-preview-errores').textContent =
+                resultado.errores ? `${resultado.errores} fila(s) con error (falta DNI o el nombre no tiene el formato "Apellido, Nombre")` : '';
+            document.getElementById('nomina-preview').classList.remove('hidden');
+            document.getElementById('btn-confirmar-nomina').disabled = filasNominaValidas.length === 0;
+        }
+
+        function cancelarCargaNomina() {
+            filasNominaValidas = [];
+            document.getElementById('nomina-archivo').value = '';
+            document.getElementById('nomina-preview').classList.add('hidden');
+        }
+
+        async function confirmarCargaNomina() {
+            if (!filasNominaValidas.length) return;
+            if (!confirm(`Esto va a reemplazar los ${beneficiariosData.length} beneficiarios activos actuales por los ${filasNominaValidas.length} de este archivo. ¿Continuar?`)) return;
+
+            const btn = document.getElementById('btn-confirmar-nomina');
+            btn.disabled = true;
+            mostrarMensaje('nomina-mensaje-container', '💾 Actualizando beneficiarios...', 'info');
+            try {
+                const r = await api('actualizarBeneficiarios', { beneficiarios: filasNominaValidas });
+                beneficiariosData = filasNominaValidas.map(f => [f[0], f[1], f[2], f[3]]);
+                configData['beneficiarios_actualizado_en'] = r.actualizadoEn;
+                poblarBeneficiarios();
+                cargarSaldos();
+                cargarDeudores();
+                mostrarFechaActualizacionNomina();
+                mostrarMensaje('nomina-mensaje-container', `✅ Se cargaron ${r.total} beneficiarios activos`, 'success');
+                cancelarCargaNomina();
+            } catch (e) {
+                console.error('Error:', e);
+                mostrarMensaje('nomina-mensaje-container', '❌ ' + e.message, 'error');
+                btn.disabled = false;
+            }
+        }
+
         async function showSection(s) {
-            ['dashboard', 'ingresos', 'egresos', 'deudores', 'informes'].forEach(sec =>
+            ['dashboard', 'ingresos', 'egresos', 'deudores', 'informes', 'beneficiarios'].forEach(sec =>
                 document.getElementById(`${sec}-section`).classList.add('hidden'));
             document.getElementById(`${s}-section`).classList.remove('hidden');
             if (['dashboard', 'deudores', 'informes'].includes(s)) {
@@ -691,6 +839,15 @@
                 if (s === 'deudores') cargarDeudores();
                 if (s === 'informes') cargarEjecucionEnTabla();
             }
+            if (s === 'beneficiarios') mostrarFechaActualizacionNomina();
+        }
+
+        function mostrarFechaActualizacionNomina() {
+            const el = document.getElementById('nomina-actualizado');
+            const fecha = configData['beneficiarios_actualizado_en'];
+            el.textContent = fecha
+                ? `Última actualización: ${new Date(fecha).toLocaleString('es-AR')}`
+                : 'Todavía no se cargó ninguna nómina desde la app.';
         }
 
         // ========== SALDOS Y DEUDORES (sobre datos ya normalizados) ==========
