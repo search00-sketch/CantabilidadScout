@@ -717,10 +717,25 @@
 
         const FUNCION_A_RAMA = { 'Lobato / Lobezna': 'Manada', 'Scout': 'Unidad', 'Caminante': 'Caminantes', 'Rover': 'Rovers' };
 
+        // Parsea el valor de la clave CONFIG "excepciones_rama_dni" (formato "dni:rama;dni:rama;...")
+        // en un mapa { dni: rama }. Ver INSTRUCCIONES.md para el mecanismo general.
+        function parsearExcepcionesRama(valor) {
+            const mapa = {};
+            String(valor || '').split(';').forEach(par => {
+                const partes = par.split(':');
+                const dni = (partes[0] || '').trim();
+                const rama = (partes[1] || '').trim();
+                if (dni && rama) mapa[dni] = rama;
+            });
+            return mapa;
+        }
+
         // Función pura: recibe filas en formato XLSX.utils.sheet_to_json (objetos con las
         // columnas del archivo como propiedades) y devuelve las filas ya mapeadas al formato
         // de BENEFICIARIOS, agrupadas por rama, junto con los contadores de descartes/errores.
-        function procesarFilasNomina(filas) {
+        // excepcionesRama (opcional): mapa { dni: rama } que fuerza la rama de un DNI puntual,
+        // por encima de lo que diga la columna Función (ver parsearExcepcionesRama arriba).
+        function procesarFilasNomina(filas, excepcionesRama) {
             const porRama = { Manada: 0, Unidad: 0, Caminantes: 0, Rovers: 0 };
             const indicePorDni = new Map();
             const validas = [];
@@ -730,7 +745,7 @@
                 const dni = String(f['Dni'] || '').trim();
                 const nombreCompleto = String(f['Nombre'] || '').trim();
                 const funcion = String(f['Función'] || '').trim();
-                const rama = FUNCION_A_RAMA[funcion];
+                const rama = (excepcionesRama || {})[dni] || FUNCION_A_RAMA[funcion];
                 if (!rama) { descartadas++; return; }
 
                 const idxComa = nombreCompleto.indexOf(',');
@@ -782,20 +797,24 @@
                         ? XLSX.read(decodificarTextoNomina(e.target.result), { type: 'string' })
                         : XLSX.read(e.target.result, { type: 'array' });
                     const hoja = wb.Sheets[wb.SheetNames[0]];
+                    if (!hoja) throw new Error('El archivo no tiene ninguna hoja de datos');
                     const filas = XLSX.utils.sheet_to_json(hoja, { defval: '' });
                     if (!filas.length || !('Dni' in filas[0]) || !('Nombre' in filas[0]) || !('Función' in filas[0])) {
                         mostrarMensaje('nomina-mensaje-container', '❌ El archivo no tiene las columnas esperadas (Dni, Nombre, Función)', 'error');
                         cancelarCargaNomina();
                         return;
                     }
-                    mostrarVistaPreviaNomina(procesarFilasNomina(filas));
+                    mostrarVistaPreviaNomina(procesarFilasNomina(filas, parsearExcepcionesRama(configData['excepciones_rama_dni'])));
                 } catch (err) {
                     console.error(err);
                     mostrarMensaje('nomina-mensaje-container', '❌ No se pudo leer el archivo: ' + err.message, 'error');
                     cancelarCargaNomina();
                 }
             };
-            reader.onerror = () => mostrarMensaje('nomina-mensaje-container', '❌ No se pudo leer el archivo', 'error');
+            reader.onerror = () => {
+                mostrarMensaje('nomina-mensaje-container', '❌ No se pudo leer el archivo', 'error');
+                cancelarCargaNomina();
+            };
             reader.readAsArrayBuffer(file);
         }
 
