@@ -51,11 +51,12 @@ function json_(obj) {
 
 function ejecutar_(action, p, user) {
   switch (action) {
-    case 'bootstrap':         return bootstrap_(user);
-    case 'getMovimientos':    return getMovimientos_();
-    case 'addIngreso':        return addIngreso_(p, user);
-    case 'addEgreso':         return addEgreso_(p, user);
-    case 'uploadComprobante': return uploadComprobante_(p);
+    case 'bootstrap':             return bootstrap_(user);
+    case 'getMovimientos':        return getMovimientos_();
+    case 'addIngreso':            return addIngreso_(p, user);
+    case 'addEgreso':             return addEgreso_(p, user);
+    case 'uploadComprobante':     return uploadComprobante_(p);
+    case 'actualizarBeneficiarios': return actualizarBeneficiarios_(p);
     default: throw new Error('Acción desconocida: ' + action);
   }
 }
@@ -269,6 +270,59 @@ function addEgreso_(p, user) {
     monto, linkArchivo, user.email, new Date().toISOString()
   ]);
   return { ok: true, linkArchivo: linkArchivo };
+}
+
+/** Valida y normaliza las filas ya mapeadas por el cliente. Función pura (sin llamadas a Sheets/Lock). */
+function validarBeneficiarios_(filas) {
+  const RAMAS = ['Manada', 'Unidad', 'Caminantes', 'Rovers'];
+  if (!Array.isArray(filas) || !filas.length) throw new Error('No se recibió ningún beneficiario para cargar');
+
+  const porRama = { Manada: 0, Unidad: 0, Caminantes: 0, Rovers: 0 };
+  const filasValidas = filas.map(function(f) {
+    const dni = String(f[0] || '').trim();
+    const apellido = String(f[1] || '').trim();
+    const nombre = String(f[2] || '').trim();
+    const rama = String(f[3] || '').trim();
+    if (!dni || !/^\d+$/.test(dni)) throw new Error('DNI inválido: ' + dni);
+    if (!apellido || !nombre) throw new Error('Falta apellido o nombre para el DNI ' + dni);
+    if (RAMAS.indexOf(rama) < 0) throw new Error('Rama inválida para el DNI ' + dni + ': ' + rama);
+    porRama[rama]++;
+    return [dni, apellido, nombre, rama, 'SI'];
+  });
+  return { filasValidas: filasValidas, porRama: porRama };
+}
+
+function actualizarBeneficiarios_(p) {
+  const resultado = validarBeneficiarios_(p.beneficiarios);
+  const ahora = new Date().toISOString();
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    const sh = ss_().getSheetByName('BENEFICIARIOS');
+    if (!sh) throw new Error('Falta la pestaña BENEFICIARIOS en la planilla');
+    const lastRow = sh.getLastRow();
+    if (lastRow > 1) {
+      sh.getRange(2, 1, lastRow - 1, sh.getLastColumn()).clearContent();
+    }
+    sh.getRange(2, 1, resultado.filasValidas.length, 5).setValues(resultado.filasValidas);
+
+    const cfg = ss_().getSheetByName('CONFIG');
+    const cfgValues = cfg.getDataRange().getValues();
+    let escrito = false;
+    for (let i = 1; i < cfgValues.length; i++) {
+      if (String(cfgValues[i][0] || '').trim() === 'beneficiarios_actualizado_en') {
+        cfg.getRange(i + 1, 2).setValue(ahora);
+        escrito = true;
+        break;
+      }
+    }
+    if (!escrito) cfg.appendRow(['beneficiarios_actualizado_en', ahora]);
+
+    return { ok: true, total: resultado.filasValidas.length, porRama: resultado.porRama, actualizadoEn: ahora };
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 function uploadComprobante_(p) {
