@@ -56,7 +56,7 @@ function ejecutar_(action, p, user) {
     case 'addIngreso':            return addIngreso_(p, user);
     case 'addEgreso':             return addEgreso_(p, user);
     case 'uploadComprobante':     return uploadComprobante_(p);
-    case 'actualizarBeneficiarios': return actualizarBeneficiarios_(p);
+    case 'actualizarBeneficiarios': return actualizarBeneficiarios_(p, user);
     default: throw new Error('Acción desconocida: ' + action);
   }
 }
@@ -278,6 +278,7 @@ function validarBeneficiarios_(filas) {
   if (!Array.isArray(filas) || !filas.length) throw new Error('No se recibió ningún beneficiario para cargar');
 
   const porRama = { Manada: 0, Unidad: 0, Caminantes: 0, Rovers: 0 };
+  const dnisVistos = {};
   const filasValidas = filas.map(function(f) {
     const dni = String(f[0] || '').trim();
     const apellido = String(f[1] || '').trim();
@@ -286,38 +287,58 @@ function validarBeneficiarios_(filas) {
     if (!dni || !/^\d+$/.test(dni)) throw new Error('DNI inválido: ' + dni);
     if (!apellido || !nombre) throw new Error('Falta apellido o nombre para el DNI ' + dni);
     if (RAMAS.indexOf(rama) < 0) throw new Error('Rama inválida para el DNI ' + dni + ': ' + rama);
+    if (dnisVistos[dni]) throw new Error('DNI repetido en la carga: ' + dni);
+    dnisVistos[dni] = true;
     porRama[rama]++;
     return [dni, apellido, nombre, rama, 'SI'];
   });
   return { filasValidas: filasValidas, porRama: porRama };
 }
 
-function actualizarBeneficiarios_(p) {
+function actualizarBeneficiarios_(p, user) {
   const resultado = validarBeneficiarios_(p.beneficiarios);
   const ahora = new Date().toISOString();
 
   const lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {
+    // Todas las validaciones/chequeos de existencia y capacidad se hacen ANTES de
+    // borrar ningún dato: si algo de esto falla, BENEFICIARIOS queda intacta.
     const sh = ss_().getSheetByName('BENEFICIARIOS');
     if (!sh) throw new Error('Falta la pestaña BENEFICIARIOS en la planilla');
+    const cfg = ss_().getSheetByName('CONFIG');
+    if (!cfg) throw new Error('Falta la pestaña CONFIG en la planilla');
+
+    const filasNecesarias = resultado.filasValidas.length + 1; // +1 por el encabezado
+    const columnasNecesarias = 5;
+    if (sh.getMaxRows() < filasNecesarias) {
+      sh.insertRowsAfter(sh.getMaxRows(), filasNecesarias - sh.getMaxRows());
+    }
+    if (sh.getMaxColumns() < columnasNecesarias) {
+      sh.insertColumnsAfter(sh.getMaxColumns(), columnasNecesarias - sh.getMaxColumns());
+    }
+
+    // Recién acá, con todo validado y la hoja con capacidad suficiente, se borra y se escribe.
     const lastRow = sh.getLastRow();
     if (lastRow > 1) {
       sh.getRange(2, 1, lastRow - 1, sh.getLastColumn()).clearContent();
     }
     sh.getRange(2, 1, resultado.filasValidas.length, 5).setValues(resultado.filasValidas);
 
-    const cfg = ss_().getSheetByName('CONFIG');
     const cfgValues = cfg.getDataRange().getValues();
-    let escrito = false;
+    let escritoFecha = false, escritoUsuario = false;
     for (let i = 1; i < cfgValues.length; i++) {
-      if (String(cfgValues[i][0] || '').trim() === 'beneficiarios_actualizado_en') {
+      const clave = String(cfgValues[i][0] || '').trim();
+      if (clave === 'beneficiarios_actualizado_en') {
         cfg.getRange(i + 1, 2).setValue(ahora);
-        escrito = true;
-        break;
+        escritoFecha = true;
+      } else if (clave === 'beneficiarios_actualizado_por') {
+        cfg.getRange(i + 1, 2).setValue(user.email);
+        escritoUsuario = true;
       }
     }
-    if (!escrito) cfg.appendRow(['beneficiarios_actualizado_en', ahora]);
+    if (!escritoFecha) cfg.appendRow(['beneficiarios_actualizado_en', ahora]);
+    if (!escritoUsuario) cfg.appendRow(['beneficiarios_actualizado_por', user.email]);
 
     return { ok: true, total: resultado.filasValidas.length, porRama: resultado.porRama, actualizadoEn: ahora };
   } finally {
