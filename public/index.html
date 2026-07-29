@@ -743,7 +743,7 @@
 
         // Parsea el valor de la clave CONFIG "excepciones_rama_dni" (formato "dni:rama;dni:rama;...")
         // en un mapa { dni: rama }. Ver INSTRUCCIONES.md para el mecanismo general. Entradas con una
-        // rama fuera de las 4 válidas se ignoran (en vez de fallar recién al confirmar la carga).
+        // rama fuera de las válidas se ignoran (en vez de fallar recién al confirmar la carga).
         function parsearExcepcionesRama(valor) {
             const mapa = Object.create(null);
             String(valor || '').split(';').forEach(par => {
@@ -783,9 +783,14 @@
                 const fila = [dni, apellido, nombre, rama];
                 if (indicePorDni.has(dni)) {
                     const posAnterior = indicePorDni.get(dni);
-                    porRama[validas[posAnterior][3]]--;
+                    const ramaAnterior = validas[posAnterior][3];
+                    if (ramaAnterior !== rama) duplicados++;
+                    // Una rama concreta de chicos gana sobre la categoría genérica "Educadores",
+                    // sin importar en qué orden vengan las filas en el archivo — evita que una
+                    // segunda fila con un rol de comité/asamblea le saque la rama real a un chico.
+                    if (ramaAnterior !== 'Educadores' && rama === 'Educadores') { return; }
+                    porRama[ramaAnterior]--;
                     validas[posAnterior] = fila;
-                    duplicados++;
                 } else {
                     indicePorDni.set(dni, validas.length);
                     validas.push(fila);
@@ -851,8 +856,8 @@
                 `<tr><td>${escapeHtml(r)}</td><td>${resultado.porRama[r]}</td></tr>`
             ).join('');
             document.getElementById('nomina-preview-descartadas').textContent =
-                `${resultado.descartadas} fila(s) descartada(s) (función no reconocida)` +
-                (resultado.duplicados ? ` — ${resultado.duplicados} DNI duplicado(s), se conservó la última fila` : '');
+                `${resultado.descartadas} fila(s) descartada(s) (sin función o "Padre representante...")` +
+                (resultado.duplicados ? ` — ${resultado.duplicados} DNI duplicado(s), se conservó la rama más específica` : '');
             document.getElementById('nomina-preview-errores').textContent =
                 resultado.errores ? `${resultado.errores} fila(s) con error (falta DNI o el nombre no tiene el formato "Apellido, Nombre")` : '';
             document.getElementById('nomina-preview').classList.remove('hidden');
