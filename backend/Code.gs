@@ -269,10 +269,10 @@ function addEgreso_(p, user) {
 
 /** Valida y normaliza las filas ya mapeadas por el cliente. Función pura (sin llamadas a Sheets/Lock). */
 function validarBeneficiarios_(filas) {
-  const RAMAS = ['Manada', 'Unidad', 'Caminantes', 'Rovers'];
+  const RAMAS = ['Manada', 'Unidad', 'Caminantes', 'Rovers', 'Educadores'];
   if (!Array.isArray(filas) || !filas.length) throw new Error('No se recibió ningún beneficiario para cargar');
 
-  const porRama = { Manada: 0, Unidad: 0, Caminantes: 0, Rovers: 0 };
+  const porRama = { Manada: 0, Unidad: 0, Caminantes: 0, Rovers: 0, Educadores: 0 };
   const dnisVistos = {};
   const filasValidas = filas.map(function(f) {
     const dni = String(f[0] || '').trim();
