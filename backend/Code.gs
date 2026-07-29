@@ -2,18 +2,14 @@
  * ============================================================
  * BACKEND SEGURO - Sistema Contable Grupo Scout SJO N°466
  * ============================================================
- * Google Apps Script vinculado a la planilla (Extensiones > Apps Script).
- * Implementar como Web App: "Ejecutar como: Yo" / "Acceso: Cualquier usuario".
+ * Web App: "Ejecutar como: Yo" / "Acceso: Cualquier usuario".
  *
- * Script Properties requeridas (Configuración del proyecto > Propiedades):
+ * Script Properties requeridas:
  *   CLIENT_ID            -> Client ID de OAuth (el mismo del frontend)
  *   FOLDER_EGRESOS       -> ID carpeta Drive para archivos de egresos
  *   FOLDER_INGRESOS      -> ID carpeta Drive para adjuntos de ingresos
  *   FOLDER_COMPROBANTES  -> ID carpeta Drive para comprobantes generados
- *   SPREADSHEET_ID       -> (opcional) solo si el script NO está vinculado a la planilla
- *
- * La planilla debe tener una pestaña USUARIOS con columnas:
- *   A: EMAIL | B: ROL | C: ACTIVO (SI/NO)
+ *   SPREADSHEET_ID       -> (opcional) solo si el script NO está vinculado
  */
 
 const PROPS = PropertiesService.getScriptProperties();
@@ -62,7 +58,6 @@ function ejecutar_(action, p, user) {
 }
 
 // ========== AUTENTICACIÓN ==========
-/** Verifica el ID token de Google contra el endpoint oficial. Cachea 5 min. */
 function verificarToken_(token) {
   if (!token) throw new Error('AUTH: falta el token de sesión');
   const cache = CacheService.getScriptCache();
@@ -86,8 +81,7 @@ function verificarToken_(token) {
 
 /**
  * Valida el email contra la pestaña USUARIOS (allowlist en la planilla).
- * Detecta las columnas por nombre en la fila 1 (Email / Rol / Activo),
- * así funciona con la estructura existente aunque haya columnas extra.
+ * Detecta las columnas por nombre en la fila 1 (Email / Rol / Activo).
  */
 function verificarUsuario_(email) {
   const sh = ss_().getSheetByName('USUARIOS');
@@ -104,7 +98,6 @@ function verificarUsuario_(email) {
 
   for (let i = 1; i < values.length; i++) {
     const rowEmail = String(values[i][colEmail] || '').trim().toLowerCase();
-    // Si no hay columna ACTIVO, se considera activo por estar en la lista
     const activo = colActivo >= 0
       ? String(values[i][colActivo] || '').trim().toUpperCase()
       : 'SI';
@@ -164,7 +157,6 @@ function getCategorias_() {
   for (let i = 1; i < values.length; i++) {
     const r = values[i];
     if (String(r[0]) === 'Egreso' && String(r[2] || '').toUpperCase().indexOf('S') === 0) {
-      // [tipo, nombre, activo, presupuesto numérico]
       out.push([String(r[0]), String(r[1] || ''), String(r[2] || ''), num_(r[3])]);
     }
   }
@@ -187,7 +179,7 @@ function getMovimientos_() {
     const r = egr[i];
     if (!r[0] && !r[4]) continue;
     egresos.push([toISO_(r[0]), String(r[1] || ''), String(r[2] || ''),
-                  String(r[3] || ''), num_(r[4]), String(r[5] || '')]);
+                  String(r[3] || ''), num_(r[4]), String(r[5] || ''), String(r[8] || '')]);
   }
   return { ingresos: ingresos, egresos: egresos };
 }
@@ -260,6 +252,9 @@ function addEgreso_(p, user) {
   const monto = num_(p.monto);
   if (!p.fecha || !p.rubro || !(monto > 0)) throw new Error('Faltan campos obligatorios');
 
+  const rama = String(p.rama || '').trim();
+  if (p.rubro === 'Programa' && !rama) throw new Error('Falta la rama para un gasto de Programa');
+
   let linkArchivo = '';
   if (p.archivo && p.archivo.base64) {
     linkArchivo = subirArchivo_(p.archivo, FOLDER_EGRESOS);
@@ -267,7 +262,7 @@ function addEgreso_(p, user) {
 
   ss_().getSheetByName('EGRESOS').appendRow([
     p.fecha, String(p.rubro), String(p.detalle || ''), String(p.comprobante || ''),
-    monto, linkArchivo, user.email, new Date().toISOString()
+    monto, linkArchivo, user.email, new Date().toISOString(), rama
   ]);
   return { ok: true, linkArchivo: linkArchivo };
 }
@@ -374,22 +369,40 @@ function subirArchivo_(archivo, folderId) {
 
 /**
  * Comparte un archivo como "cualquiera con el enlace: lector".
- * El link es imposible de adivinar y la carpeta sigue restringida,
- * así el dirigente puede ver/reenviar el comprobante sin exponer el resto.
+ * El link es imposible de adivinar y la carpeta sigue restringida.
  */
 function compartirPorLink_(file) {
   try {
     file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
   } catch (e) {
-    // Si la cuenta no permite compartir por link, el archivo queda restringido
     console.error('No se pudo compartir por link: ' + e);
   }
 }
 
-// ========== HELPERS DE NORMALIZACIÓN ==========
-/** Convierte Date, serial de Sheets, dd/mm/yyyy o ISO a 'yyyy-mm-dd'. */
+// ========== HELPERS ==========
 function toISO_(v) {
   if (v instanceof Date && !isNaN(v.getTime())) {
     return Utilities.formatDate(v, Session.getScriptTimeZone(), 'yyyy-MM-dd');
   }
-  const s = String
+  const s = String(v == null ? '' : v).trim();
+  if (!s) return '';
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+  const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (m) return m[3] + '-' + pad2_(m[2]) + '-' + pad2_(m[1]);
+  if (/^\d+(\.\d+)?$/.test(s)) {
+    const d = new Date((parseFloat(s) - 25569) * 86400000);
+    if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+  }
+  return s;
+}
+
+function pad2_(n) { return ('0' + n).slice(-2); }
+
+function num_(v) {
+  if (typeof v === 'number') return isNaN(v) ? 0 : v;
+  let s = String(v == null ? '' : v).replace(/[$\s]/g, '');
+  if (!s) return 0;
+  if (s.indexOf(',') >= 0) s = s.replace(/\./g, '').replace(',', '.');
+  const n = parseFloat(s);
+  return isNaN(n) ? 0 : n;
+}

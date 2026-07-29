@@ -287,7 +287,10 @@
                     </div>
                     <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
                         <article class="stat-card"><h3 style="font-size: 0.85rem;">TOTAL ACTIVOS</h3><div class="stat-number" id="saldo-total" style="font-size: 2rem;">$ ...</div><small>Saldo inicial ± movimientos</small></article>
-                        <article class="stat-card"><h3 style="font-size: 0.85rem;">PENDIENTE DE COBRO</h3><div class="stat-number" id="total-pendiente" style="color: var(--error);">$ 0</div><small id="familias-al-dia">Calculando...</small></article>
+                        <article class="stat-card" style="text-align:left;">
+                            <h3 style="font-size: 0.85rem; text-align:center;">FONDO DE PROGRAMA POR RAMA</h3>
+                            <div id="fondos-rama" style="font-size: 0.8rem; margin-top: 8px;">Calculando...</div>
+                        </article>
                     </div>
                     <div class="grid" style="grid-template-columns: repeat(4,1fr);">
                         <div class="card text-center" onclick="showSection('ingresos')" role="button" tabindex="0" aria-label="Ir a cargar ingreso"><span aria-hidden="true" style="font-size: 1.5rem;">💰</span><p style="font-size: 0.8rem;">Cargar Ingreso</p></div>
@@ -368,7 +371,7 @@
                             <div class="grid">
                                 <div class="form-group"><label for="egreso-fecha">Fecha *</label><input type="date" id="egreso-fecha" class="form-control" required aria-required="true"></div>
                                 <div class="form-group"><label for="egreso-rubro">Rubro *</label>
-                                    <select id="egreso-rubro" class="form-control" required aria-required="true">
+                                    <select id="egreso-rubro" class="form-control" required aria-required="true" onchange="toggleCampoRamaEgreso()">
                                         <option value="">Seleccionar</option>
                                         <option value="Mantenimiento">Mantenimiento</option>
                                         <option value="Programa">Programa</option>
@@ -384,6 +387,17 @@
                                         <option value="Viáticos">Viáticos</option>
                                         <option value="Farmacia">Farmacia</option>
                                         <option value="Premios/Regalos">Premios/Regalos</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div id="campo-rama-egreso" class="hidden">
+                                <div class="form-group"><label for="egreso-rama">Rama *</label>
+                                    <select id="egreso-rama" class="form-control">
+                                        <option value="">Seleccionar</option>
+                                        <option>Manada</option>
+                                        <option>Unidad</option>
+                                        <option>Caminantes</option>
+                                        <option>Rovers</option>
                                     </select>
                                 </div>
                             </div>
@@ -943,12 +957,6 @@
 
             const estados = calcularEstadosBeneficiarios();
 
-            // Pendiente de cobro + familias al día
-            const totalPendiente = estados.reduce((s, e) => s + e.totalPendiente, 0);
-            const alDia = estados.filter(e => e.totalPendiente === 0).length;
-            document.getElementById('total-pendiente').textContent = `$ ${totalPendiente.toLocaleString('es-AR')}`;
-            document.getElementById('familias-al-dia').textContent = `${alDia} de ${estados.length} al día`;
-
             // Anotados al Campamento de Verano (pagaron algo)
             const anotados = estados.filter(e => e.campVerPagado > 0)
                 .sort((a, b) => a.nombre.localeCompare(b.nombre));
@@ -962,6 +970,38 @@
                 html += `<tr><td>${escapeHtml(e.nombre)}</td><td>${escapeHtml(e.rama)}</td><td>$${e.campVerPagado.toLocaleString()}</td><td>${estado}</td></tr>`;
             }
             tbody.innerHTML = html || '<tr><td colspan="4" class="text-center">Todavía no hay anotados</td></tr>';
+
+            cargarFondosPorRama();
+        }
+
+        function calcularFondosPorRama() {
+            const RAMAS = ['Manada', 'Unidad', 'Caminantes', 'Rovers'];
+            const tasa = numConfig('monto_programa_por_beneficiario', 0);
+            const conteo = {}, gasto = {};
+            beneficiariosData.forEach(b => {
+                const r = String(b[3] || '').trim();
+                conteo[r] = (conteo[r] || 0) + 1;
+            });
+            movimientos.egresos.forEach(row => {
+                if (String(row[1] || '') !== 'Programa') return;
+                const r = String(row[6] || '').trim();
+                if (r) gasto[r] = (gasto[r] || 0) + (Number(row[4]) || 0);
+            });
+            return RAMAS.map(r => {
+                const asignado = tasa * (conteo[r] || 0);
+                const gastado = gasto[r] || 0;
+                return { rama: r, asignado, gastado, restante: asignado - gastado };
+            });
+        }
+
+        function cargarFondosPorRama() {
+            document.getElementById('fondos-rama').innerHTML = calcularFondosPorRama().map(d => {
+                const color = d.restante < 0 ? 'var(--error)' : 'var(--negro)';
+                return `<div style="display:flex;justify-content:space-between;padding:2px 0;">
+                            <span>${escapeHtml(d.rama)}</span>
+                            <span style="color:${color};font-weight:600;">$${d.restante.toLocaleString('es-AR')}</span>
+                        </div>`;
+            }).join('');
         }
 
         function cargarDeudores() {
@@ -1015,6 +1055,11 @@
             const necesitaBeneficiario = ['Cuota', 'Campamento Invierno', 'Campamento Verano'].includes(rubro);
             camposBeneficiario.classList.toggle('hidden', !necesitaBeneficiario);
             campoCuota.classList.toggle('hidden', rubro !== 'Cuota');
+        }
+
+        function toggleCampoRamaEgreso() {
+            const rubro = document.getElementById('egreso-rubro').value;
+            document.getElementById('campo-rama-egreso').classList.toggle('hidden', rubro !== 'Programa');
         }
 
         // ========== INFORMES ==========
@@ -1307,10 +1352,15 @@
                 const detalle = document.getElementById('egreso-detalle').value;
                 const monto = parseFloat(document.getElementById('egreso-monto').value);
                 const comprobante = document.getElementById('egreso-comprobante').value;
+                const rama = document.getElementById('egreso-rama').value;
                 const archivoInput = document.getElementById('egreso-archivo').files[0];
 
                 if (!fecha || !rubro || !monto) {
                     mostrarMensaje('egreso-mensaje-container', 'Completá los campos obligatorios', 'error');
+                    return false;
+                }
+                if (rubro === 'Programa' && !rama) {
+                    mostrarMensaje('egreso-mensaje-container', 'Seleccioná la rama del gasto de Programa', 'error');
                     return false;
                 }
 
@@ -1328,11 +1378,12 @@
                 }
 
                 mostrarMensaje('egreso-mensaje-container', '💾 Guardando egreso...', 'info');
-                const r = await api('addEgreso', { fecha, rubro, detalle, comprobante, monto, archivo });
+                const r = await api('addEgreso', { fecha, rubro, detalle, comprobante, monto, archivo, rama });
 
                 mostrarMensaje('egreso-mensaje-container', '✅ Egreso guardado correctamente' + (r.linkArchivo ? ' (archivo adjunto)' : ''), 'success');
                 document.getElementById('form-egreso').reset();
                 document.getElementById('egreso-file-info').classList.add('hidden');
+                document.getElementById('campo-rama-egreso').classList.add('hidden');
                 await refrescarMovimientos();
                 cargarSaldos();
             } catch (e) {

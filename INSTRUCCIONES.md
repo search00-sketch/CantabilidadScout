@@ -10,7 +10,9 @@
 - **index.html** final generado con la URL del backend ya incluida.
 
 URL del backend:
-`https://script.google.com/macros/s/AKfycbyWmF09kfByzy9fIuIyvZXwCVcpmTgJGBiwNv2HEjyhH8vpzNw2MYuhqE-iw4FepEvDGw/exec`
+`https://script.google.com/macros/s/AKfycbwF8dBiSAatoJ1YH8repnHDoDLqx0laYUe7YT4C6FVuzG8WB7zPLn1uL2GZ7JCD0ymWGA/exec`
+
+⚠️ Esta URL cambia si alguna vez se crea una **implementación nueva** en vez de editar la existente y subir una "Nueva versión" desde Administrar implementaciones. Si el frontend deja de recibir cambios del backend, lo primero a revisar es si esta URL sigue siendo la vigente.
 
 ## Pasos que quedan (en este orden)
 
@@ -88,3 +90,15 @@ No hace falta cambiar la estructura de columnas de la planilla: `BENEFICIARIOS` 
 3. **Antes de la primera carga real:** duplicá/hacé una copia de respaldo de la pestaña `BENEFICIARIOS` en la planilla (clic derecho en la pestaña → "Duplicar") antes de confirmar la primera carga real de nómina desde la app — es un reemplazo destructivo, y el historial de versiones de Google Sheets es la única forma de deshacerlo si algo sale mal.
 
 Después de este paso, hacer `firebase deploy --only hosting` para publicar el `index.html` actualizado con la nueva sección "Beneficiarios".
+
+## Pendiente: Fondo de Programa por Rama
+
+Cambios de código ya hechos en este repo (backend/Code.gs y public/index.html). Faltan estos 3 pasos manuales para que tengan efecto:
+
+1. En la planilla → hoja EGRESOS → agregar el encabezado "Rama" en la celda I1.
+2. En la planilla → hoja CONFIG → agregar la fila: `monto_programa_por_beneficiario` | `10000`.
+3. En el editor de Apps Script (Extensiones → Apps Script desde la planilla) → reemplazar `addEgreso_` y el loop de egresos de `getMovimientos_` con el contenido de `backend/Code.gs` → Implementar → Administrar implementaciones → editar la implementación existente → Nueva versión → Implementar.
+
+**Limitación importante:** Los egresos con Rubro="Programa" registrados *antes* de agregar la columna Rama tendrán esa celda vacía para siempre y no se acumularán en el fondo de ninguna rama. Por lo tanto, el saldo "restante" de cada rama será preciso únicamente para gastos de Programa posteriores al rollout — a menos que se rellene manualmente la columna Rama en esas filas históricas.
+
+Después de estos 3 pasos, hacer `firebase deploy --only hosting` para publicar el `index.html` actualizado.
