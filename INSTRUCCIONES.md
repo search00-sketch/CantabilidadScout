@@ -89,6 +89,8 @@ No hace falta cambiar la estructura de columnas de la planilla: `BENEFICIARIOS` 
 
 3. **Antes de la primera carga real:** duplicá/hacé una copia de respaldo de la pestaña `BENEFICIARIOS` en la planilla (clic derecho en la pestaña → "Duplicar") antes de confirmar la primera carga real de nómina desde la app — es un reemplazo destructivo, y el historial de versiones de Google Sheets es la única forma de deshacerlo si algo sale mal.
 
+4. **Educadores como beneficiarios (paso manual pendiente):** en el editor de Apps Script, ampliar el array `RAMAS` de `validarBeneficiarios_` para que acepte también `'Educadores'` (ver `backend/Code.gs`) → Implementar → Administrar implementaciones → editar la implementación existente → Nueva versión → Implementar. Sin este paso, la carga de nómina va a rechazar con "Rama inválida" a cualquier educador/dirigente reconocido por el frontend.
+
 Después de este paso, hacer `firebase deploy --only hosting` para publicar el `index.html` actualizado con la nueva sección "Beneficiarios".
 
 ## Pendiente: Fondo de Programa por Rama
