@@ -428,7 +428,7 @@
                     </div>
                     <div class="card">
                         <div class="filters">
-                            <div class="filter-group"><label for="filtro-rama">Rama:</label><select id="filtro-rama" class="form-control" onchange="filtrarDeudores()"><option value="TODAS">Todas</option><option>Manada</option><option>Unidad</option><option>Caminantes</option><option>Rovers</option></select></div>
+                            <div class="filter-group"><label for="filtro-rama">Rama:</label><select id="filtro-rama" class="form-control" onchange="filtrarDeudores()"><option value="TODAS">Todas</option><option>Manada</option><option>Unidad</option><option>Caminantes</option><option>Rovers</option><option>Educadores</option></select></div>
                             <div class="filter-group"><label for="filtro-estado">Estado:</label><select id="filtro-estado" class="form-control" onchange="filtrarDeudores()"><option value="TODOS">Todos</option><option value="PENDIENTE">Con deuda</option><option value="AL_DIA">Al día</option></select></div>
                         </div>
                     </div>
@@ -733,7 +733,13 @@
         // no resuelve a un método heredado en vez de dar "no encontrado".
         const FUNCION_A_RAMA = Object.assign(Object.create(null),
             { 'Lobato / Lobezna': 'Manada', 'Scout': 'Unidad', 'Caminante': 'Caminantes', 'Rover': 'Rovers' });
-        const RAMAS_VALIDAS = ['Manada', 'Unidad', 'Caminantes', 'Rovers'];
+        const RAMAS_VALIDAS = ['Manada', 'Unidad', 'Caminantes', 'Rovers', 'Educadores'];
+
+        // Cualquier Función no vacía que no sea una de las 4 ramas ni un "Padre representante..."
+        // cuenta como educador/dirigente (pero no como beneficiario de ninguna rama puntual).
+        function esFuncionEducador(funcion) {
+            return !!funcion && !/^padre representante/i.test(funcion);
+        }
 
         // Parsea el valor de la clave CONFIG "excepciones_rama_dni" (formato "dni:rama;dni:rama;...")
         // en un mapa { dni: rama }. Ver INSTRUCCIONES.md para el mecanismo general. Entradas con una
@@ -755,7 +761,7 @@
         // excepcionesRama (opcional): mapa { dni: rama } que fuerza la rama de un DNI puntual,
         // por encima de lo que diga la columna Función (ver parsearExcepcionesRama arriba).
         function procesarFilasNomina(filas, excepcionesRama) {
-            const porRama = { Manada: 0, Unidad: 0, Caminantes: 0, Rovers: 0 };
+            const porRama = { Manada: 0, Unidad: 0, Caminantes: 0, Rovers: 0, Educadores: 0 };
             const indicePorDni = new Map();
             const validas = [];
             let descartadas = 0, errores = 0, duplicados = 0;
@@ -764,7 +770,8 @@
                 const dni = String(f['Dni'] || '').trim();
                 const nombreCompleto = String(f['Nombre'] || '').trim();
                 const funcion = String(f['Función'] || '').trim();
-                const rama = (excepcionesRama || Object.create(null))[dni] || FUNCION_A_RAMA[funcion];
+                const rama = (excepcionesRama || Object.create(null))[dni] || FUNCION_A_RAMA[funcion]
+                    || (esFuncionEducador(funcion) ? 'Educadores' : '');
                 if (!rama) { descartadas++; return; }
 
                 const idxComa = nombreCompleto.indexOf(',');
@@ -839,7 +846,7 @@
 
         function mostrarVistaPreviaNomina(resultado) {
             filasNominaValidas = resultado.validas;
-            const RAMAS = ['Manada', 'Unidad', 'Caminantes', 'Rovers'];
+            const RAMAS = ['Manada', 'Unidad', 'Caminantes', 'Rovers', 'Educadores'];
             document.getElementById('nomina-preview-tbody').innerHTML = RAMAS.map(r =>
                 `<tr><td>${escapeHtml(r)}</td><td>${resultado.porRama[r]}</td></tr>`
             ).join('');
