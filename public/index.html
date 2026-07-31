@@ -764,14 +764,33 @@
             const porRama = { Manada: 0, Unidad: 0, Caminantes: 0, Rovers: 0, Educadores: 0 };
             const indicePorDni = new Map();
             const validas = [];
+            const candidatosPendientes = new Map();
             let descartadas = 0, errores = 0, duplicados = 0;
 
             filas.forEach(f => {
                 const dni = String(f['Dni'] || '').trim();
                 const nombreCompleto = String(f['Nombre'] || '').trim();
                 const funcion = String(f['Función'] || '').trim();
-                const rama = (excepcionesRama || Object.create(null))[dni] || FUNCION_A_RAMA[funcion]
-                    || (esFuncionEducador(funcion) ? 'Educadores' : '');
+                const excepcion = (excepcionesRama || Object.create(null))[dni];
+                let rama = excepcion || FUNCION_A_RAMA[funcion];
+
+                // Alguien con un rol de "Representante Juvenil..." es un joven/protagonista, no un
+                // educador — pero el archivo no dice su rama real. Si no hay excepción ni match
+                // exacto, no se descarta ni se manda a "Educadores": queda pendiente de que el
+                // admin le asigne una rama en la vista previa (Task 2).
+                if (!rama && /representante juvenil/i.test(funcion)) {
+                    const idxComaCand = nombreCompleto.indexOf(',');
+                    if (dni && /^\d+$/.test(dni) && idxComaCand >= 0) {
+                        const apellidoCand = nombreCompleto.slice(0, idxComaCand).trim();
+                        const nombreCand = nombreCompleto.slice(idxComaCand + 1).trim();
+                        if (apellidoCand && nombreCand) {
+                            candidatosPendientes.set(dni, [apellidoCand, nombreCand]);
+                        }
+                    }
+                    return;
+                }
+
+                if (!rama) rama = esFuncionEducador(funcion) ? 'Educadores' : '';
                 if (!rama) { descartadas++; return; }
 
                 const idxComa = nombreCompleto.indexOf(',');
@@ -798,7 +817,16 @@
                 porRama[rama]++;
             });
 
-            return { validas, porRama, descartadas, errores, duplicados };
+            // Un candidato deja de ser "pendiente" si su DNI terminó resuelto por otra fila
+            // (una rama exacta o una excepción), sin importar en qué orden vinieran las filas.
+            const pendientesRama = [];
+            candidatosPendientes.forEach((datos, dni) => {
+                if (!indicePorDni.has(dni)) {
+                    pendientesRama.push({ dni, apellido: datos[0], nombre: datos[1] });
+                }
+            });
+
+            return { validas, porRama, descartadas, errores, duplicados, pendientesRama };
         }
 
         // Decodifica los bytes crudos de un CSV probando primero UTF-8 estricto (falla si
