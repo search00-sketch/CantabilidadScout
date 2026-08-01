@@ -466,6 +466,10 @@
                             </div>
                             <p id="nomina-preview-descartadas" style="font-size: 0.85rem; margin-top: 8px;"></p>
                             <p id="nomina-preview-errores" style="font-size: 0.85rem; color: var(--error);"></p>
+                            <div id="nomina-pendientes" class="hidden" style="margin-top: 10px;">
+                                <p style="font-size: 0.85rem; font-weight: 600; color: var(--marron);">Figuran con un rol especial (Representante Juvenil) — elegí la rama real de cada uno para poder confirmar la carga:</p>
+                                <div id="nomina-pendientes-lista"></div>
+                            </div>
                             <div class="text-right" style="margin-top: 10px;">
                                 <button type="button" class="btn" style="background:#ddd;" onclick="cancelarCargaNomina()">Cancelar</button>
                                 <button type="button" class="btn btn-success" id="btn-confirmar-nomina" onclick="confirmarCargaNomina()" disabled>Confirmar carga</button>
@@ -866,6 +870,7 @@
         }
 
         let filasNominaValidas = [];
+        let pendientesRamaActual = [];
 
         function onArchivoNominaSeleccionado(event) {
             const file = event.target.files[0];
@@ -903,6 +908,7 @@
 
         function mostrarVistaPreviaNomina(resultado) {
             filasNominaValidas = resultado.validas;
+            pendientesRamaActual = resultado.pendientesRama;
             const RAMAS = ['Manada', 'Unidad', 'Caminantes', 'Rovers', 'Educadores'];
             document.getElementById('nomina-preview-tbody').innerHTML = RAMAS.map(r =>
                 `<tr><td>${escapeHtml(r)}</td><td>${resultado.porRama[r]}</td></tr>`
@@ -912,26 +918,68 @@
                 (resultado.duplicados ? ` — ${resultado.duplicados} DNI duplicado(s), se conservó la rama más específica` : '');
             document.getElementById('nomina-preview-errores').textContent =
                 resultado.errores ? `${resultado.errores} fila(s) con error (falta DNI o el nombre no tiene el formato "Apellido, Nombre")` : '';
+
+            const contenedorPendientes = document.getElementById('nomina-pendientes');
+            if (pendientesRamaActual.length) {
+                document.getElementById('nomina-pendientes-lista').innerHTML = pendientesRamaActual.map(p => `
+                    <div class="form-group" style="display:flex;align-items:center;gap:8px;">
+                        <span style="flex:1;">${escapeHtml(p.apellido)}, ${escapeHtml(p.nombre)} (DNI ${escapeHtml(p.dni)})</span>
+                        <select class="form-control pendiente-rama-select" data-dni="${escapeHtml(p.dni)}" style="max-width:160px;" onchange="actualizarEstadoConfirmarNomina()">
+                            <option value="">Elegir rama</option>
+                            <option>Manada</option>
+                            <option>Unidad</option>
+                            <option>Caminantes</option>
+                            <option>Rovers</option>
+                        </select>
+                    </div>
+                `).join('');
+                contenedorPendientes.classList.remove('hidden');
+            } else {
+                document.getElementById('nomina-pendientes-lista').innerHTML = '';
+                contenedorPendientes.classList.add('hidden');
+            }
+
             document.getElementById('nomina-preview').classList.remove('hidden');
-            document.getElementById('btn-confirmar-nomina').disabled = filasNominaValidas.length === 0;
+            actualizarEstadoConfirmarNomina();
+        }
+
+        function actualizarEstadoConfirmarNomina() {
+            const selects = document.querySelectorAll('.pendiente-rama-select');
+            const faltaAlguno = Array.from(selects).some(s => !s.value);
+            document.getElementById('btn-confirmar-nomina').disabled = filasNominaValidas.length === 0 || faltaAlguno;
         }
 
         function cancelarCargaNomina() {
             filasNominaValidas = [];
+            pendientesRamaActual = [];
             document.getElementById('nomina-archivo').value = '';
             document.getElementById('nomina-preview').classList.add('hidden');
+            document.getElementById('nomina-pendientes').classList.add('hidden');
+            document.getElementById('nomina-pendientes-lista').innerHTML = '';
         }
 
         async function confirmarCargaNomina() {
             if (!filasNominaValidas.length) return;
-            if (!confirm(`Esto va a reemplazar los ${beneficiariosData.length} beneficiarios activos actuales por los ${filasNominaValidas.length} de este archivo. ¿Continuar?`)) return;
+
+            const nuevasExcepciones = pendientesRamaActual.map(p => {
+                const select = document.querySelector(`.pendiente-rama-select[data-dni="${p.dni}"]`);
+                return { dni: p.dni, rama: select ? select.value : '' };
+            });
+            if (nuevasExcepciones.some(e => !e.rama)) return;
+
+            const filasPendientesResueltas = pendientesRamaActual.map((p, i) =>
+                [p.dni, p.apellido, p.nombre, nuevasExcepciones[i].rama]
+            );
+            const beneficiariosAEnviar = filasNominaValidas.concat(filasPendientesResueltas);
+
+            if (!confirm(`Esto va a reemplazar los ${beneficiariosData.length} beneficiarios activos actuales por los ${beneficiariosAEnviar.length} de este archivo. ¿Continuar?`)) return;
 
             const btn = document.getElementById('btn-confirmar-nomina');
             btn.disabled = true;
             mostrarMensaje('nomina-mensaje-container', '💾 Actualizando beneficiarios...', 'info');
             try {
-                const r = await api('actualizarBeneficiarios', { beneficiarios: filasNominaValidas });
-                beneficiariosData = filasNominaValidas.map(f => [f[0], f[1], f[2], f[3]]);
+                const r = await api('actualizarBeneficiarios', { beneficiarios: beneficiariosAEnviar, nuevasExcepciones });
+                beneficiariosData = beneficiariosAEnviar.map(f => [f[0], f[1], f[2], f[3]]);
                 configData['beneficiarios_actualizado_en'] = r.actualizadoEn;
                 poblarBeneficiarios();
                 cargarSaldos();
