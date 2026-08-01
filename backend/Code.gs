@@ -290,8 +290,22 @@ function validarBeneficiarios_(filas) {
   return { filasValidas: filasValidas, porRama: porRama };
 }
 
+/** Valida (sin I/O) el array opcional de nuevas excepciones dni->rama que llega desde el cliente. */
+function validarNuevasExcepciones_(nuevasExcepciones) {
+  if (!Array.isArray(nuevasExcepciones) || !nuevasExcepciones.length) return [];
+  const RAMAS_CHICOS = ['Manada', 'Unidad', 'Caminantes', 'Rovers'];
+  return nuevasExcepciones.map(function(ex) {
+    const dni = String((ex && ex.dni) || '').trim();
+    const rama = String((ex && ex.rama) || '').trim();
+    if (!dni || !/^\d+$/.test(dni)) throw new Error('DNI inválido en nuevasExcepciones: ' + dni);
+    if (RAMAS_CHICOS.indexOf(rama) < 0) throw new Error('Rama inválida en nuevasExcepciones para el DNI ' + dni + ': ' + rama);
+    return { dni: dni, rama: rama };
+  });
+}
+
 function actualizarBeneficiarios_(p, user) {
   const resultado = validarBeneficiarios_(p.beneficiarios);
+  const nuevasExcepciones = validarNuevasExcepciones_(p.nuevasExcepciones);
   const ahora = new Date().toISOString();
 
   const lock = LockService.getScriptLock();
@@ -321,7 +335,7 @@ function actualizarBeneficiarios_(p, user) {
     sh.getRange(2, 1, resultado.filasValidas.length, 5).setValues(resultado.filasValidas);
 
     const cfgValues = cfg.getDataRange().getValues();
-    let escritoFecha = false, escritoUsuario = false;
+    let escritoFecha = false, escritoUsuario = false, indiceExcepciones = -1;
     for (let i = 1; i < cfgValues.length; i++) {
       const clave = String(cfgValues[i][0] || '').trim();
       if (clave === 'beneficiarios_actualizado_en') {
@@ -330,10 +344,29 @@ function actualizarBeneficiarios_(p, user) {
       } else if (clave === 'beneficiarios_actualizado_por') {
         cfg.getRange(i + 1, 2).setValue(user.email);
         escritoUsuario = true;
+      } else if (clave === 'excepciones_rama_dni') {
+        indiceExcepciones = i;
       }
     }
     if (!escritoFecha) cfg.appendRow(['beneficiarios_actualizado_en', ahora]);
     if (!escritoUsuario) cfg.appendRow(['beneficiarios_actualizado_por', user.email]);
+
+    if (nuevasExcepciones.length) {
+      const mapaExcepciones = {};
+      const valorActual = indiceExcepciones >= 0 ? String(cfgValues[indiceExcepciones][1] || '') : '';
+      valorActual.split(';').forEach(function(par) {
+        const partes = par.split(':');
+        const dniPar = (partes[0] || '').trim();
+        const ramaPar = (partes[1] || '').trim();
+        if (dniPar && ramaPar) mapaExcepciones[dniPar] = ramaPar;
+      });
+      nuevasExcepciones.forEach(function(ex) { mapaExcepciones[ex.dni] = ex.rama; });
+      const nuevoValor = Object.keys(mapaExcepciones).map(function(dniKey) {
+        return dniKey + ':' + mapaExcepciones[dniKey];
+      }).join(';');
+      if (indiceExcepciones >= 0) cfg.getRange(indiceExcepciones + 1, 2).setValue(nuevoValor);
+      else cfg.appendRow(['excepciones_rama_dni', nuevoValor]);
+    }
 
     return { ok: true, total: resultado.filasValidas.length, porRama: resultado.porRama, actualizadoEn: ahora };
   } finally {
