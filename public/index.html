@@ -765,6 +765,7 @@
             const indicePorDni = new Map();
             const validas = [];
             const candidatosPendientes = new Map();
+            const dnisConRamaConfirmada = new Set();
             let descartadas = 0, errores = 0, duplicados = 0;
 
             filas.forEach(f => {
@@ -774,19 +775,24 @@
                 const excepcion = (excepcionesRama || Object.create(null))[dni];
                 let rama = excepcion || FUNCION_A_RAMA[funcion];
 
+                // Una rama resuelta acá vino de una excepción puntual o de un match exacto de
+                // Función — una señal fuerte de que este DNI ya tiene rama confirmada. El
+                // fallback genérico a "Educadores" (más abajo) NO cuenta: es solo el cajón de
+                // sastre, no una clasificación confirmada, así que no debe poder tapar un
+                // "pendiente de rama" de otra fila del mismo DNI.
+                if (rama) dnisConRamaConfirmada.add(dni);
+
                 // Alguien con un rol de "Representante Juvenil..." es un joven/protagonista, no un
                 // educador — pero el archivo no dice su rama real. Si no hay excepción ni match
                 // exacto, no se descarta ni se manda a "Educadores": queda pendiente de que el
                 // admin le asigne una rama en la vista previa (Task 2).
                 if (!rama && /representante juvenil/i.test(funcion)) {
                     const idxComaCand = nombreCompleto.indexOf(',');
-                    if (dni && /^\d+$/.test(dni) && idxComaCand >= 0) {
-                        const apellidoCand = nombreCompleto.slice(0, idxComaCand).trim();
-                        const nombreCand = nombreCompleto.slice(idxComaCand + 1).trim();
-                        if (apellidoCand && nombreCand) {
-                            candidatosPendientes.set(dni, [apellidoCand, nombreCand]);
-                        }
-                    }
+                    if (!dni || !/^\d+$/.test(dni) || idxComaCand < 0) { errores++; return; }
+                    const apellidoCand = nombreCompleto.slice(0, idxComaCand).trim();
+                    const nombreCand = nombreCompleto.slice(idxComaCand + 1).trim();
+                    if (!apellidoCand || !nombreCand) { errores++; return; }
+                    candidatosPendientes.set(dni, [apellidoCand, nombreCand]);
                     return;
                 }
 
@@ -817,14 +823,32 @@
                 porRama[rama]++;
             });
 
-            // Un candidato deja de ser "pendiente" si su DNI terminó resuelto por otra fila
-            // (una rama exacta o una excepción), sin importar en qué orden vinieran las filas.
+            // Un candidato deja de ser "pendiente" si su DNI terminó resuelto por otra fila vía
+            // una excepción o un match exacto de rama, sin importar en qué orden vinieran las
+            // filas. Ojo: NO alcanza con que el DNI haya quedado en indicePorDni/validas, porque
+            // ahí también entran las filas resueltas por el fallback genérico a "Educadores" —
+            // esa señal es débil y no debe poder tapar un "pendiente de rama" real.
             const pendientesRama = [];
             candidatosPendientes.forEach((datos, dni) => {
-                if (!indicePorDni.has(dni)) {
+                if (!dnisConRamaConfirmada.has(dni)) {
                     pendientesRama.push({ dni, apellido: datos[0], nombre: datos[1] });
                 }
             });
+
+            // Un DNI no puede estar a la vez "pendiente de rama" y clasificado en `validas`: si
+            // otra fila de ese mismo DNI coló una entrada en `validas` únicamente por el fallback
+            // genérico a "Educadores" (no por excepción ni match exacto), esa entrada queda
+            // invalidada acá — es exactamente la reclasificación silenciosa que este feature
+            // existe para evitar.
+            if (pendientesRama.length) {
+                const dnisPendientes = new Set(pendientesRama.map(p => p.dni));
+                for (let i = validas.length - 1; i >= 0; i--) {
+                    if (dnisPendientes.has(validas[i][0])) {
+                        porRama[validas[i][3]]--;
+                        validas.splice(i, 1);
+                    }
+                }
+            }
 
             return { validas, porRama, descartadas, errores, duplicados, pendientesRama };
         }
