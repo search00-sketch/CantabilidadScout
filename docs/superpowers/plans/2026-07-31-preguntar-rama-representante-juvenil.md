@@ -464,7 +464,7 @@ api = async (accion, payload) => {
 await confirmarCargaNomina();
 beneficiariosData;
 ```
-Expected: la llamada logueada a `api` muestra `payload.beneficiarios` con 2 filas (Geniola y Medina Torres con rama `'Caminantes'`) y `payload.nuevasExcepciones` = `[{ dni: '12345676', rama: 'Caminantes' }]`. `beneficiariosData` termina con esas mismas 2 filas.
+Expected: la llamada logueada a `api` muestra `payload.beneficiarios` con 2 filas (Ledesma y Medina Torres con rama `'Caminantes'`) y `payload.nuevasExcepciones` = `[{ dni: '12345676', rama: 'Caminantes' }]`. `beneficiariosData` termina con esas mismas 2 filas.
 
 (Después de este test, recargar la página — quedaron pisadas las funciones `confirm` y `api` globales.)
 
@@ -608,7 +608,7 @@ git commit -m "feat: guardar nuevas excepciones de rama en CONFIG al confirmar l
 
 - [ ] **Step 1: Actualizar la sección de Beneficiarios**
 
-Buscar el punto 2 existente en `INSTRUCCIONES.md` (el que documenta la excepción manual de Cecilia Medina Torres — buscar `"Excepción de rama para un caso puntual"`). Ese paso manual queda obsoleto con esta feature: ya no hace falta agregarlo a mano, la próxima carga de nómina la va a mostrar como pendiente y va a guardar la excepción sola al confirmar. Reemplazar ese punto por:
+Buscar el punto 2 existente en `INSTRUCCIONES.md` (el que documenta la excepción manual de un caso puntual detectado en la nómina real — buscar `"Excepción de rama para un caso puntual"`). Ese paso manual queda obsoleto con esta feature: ya no hace falta agregarlo a mano, la próxima carga de nómina la va a mostrar como pendiente y va a guardar la excepción sola al confirmar. Reemplazar ese punto por:
 
 ```markdown
 2. **Excepción de rama para "Representante Juvenil" (ya no requiere paso manual):** antes había que agregar a mano en `CONFIG` la excepción de una beneficiaria detectada con este rol. Desde esta actualización, la vista previa de la carga detecta automáticamente cualquier fila cuya Función contenga "Representante Juvenil" sin excepción configurada, pide la rama real en un desplegable, y la guarda sola en `CONFIG.excepciones_rama_dni` al confirmar — no hace falta editar la planilla a mano para este caso ni para futuros similares.
@@ -634,8 +634,14 @@ git commit -m "docs: actualizar instrucciones para preguntar rama de Representan
 
 ## Self-Review
 
-**Spec coverage:** detección de "representante juvenil" case-insensitive por substring, sin match exacto ni prefijo anclado (Task 1); el DNI con otra fila que resuelve rama gana, sin importar el orden (Task 1, mismo mecanismo que el desempate de duplicados ya existente); selector de rama por pendiente en la vista previa, sin opción "Educadores" ni de saltear (Task 2); botón de confirmar bloqueado hasta que todos los pendientes tengan rama (Task 2); persistencia de la excepción nueva en `CONFIG.excepciones_rama_dni` en el mismo formato existente, agregando sin duplicar (Task 3); paso manual de deploy documentado, y el paso manual viejo (excepción de Cecilia a mano) marcado como obsoleto (Task 4). Todo lo del spec está cubierto.
+**Spec coverage:** detección de "representante juvenil" case-insensitive por substring, sin match exacto ni prefijo anclado (Task 1); el DNI con otra fila que resuelve rama gana, sin importar el orden (Task 1, mismo mecanismo que el desempate de duplicados ya existente); selector de rama por pendiente en la vista previa, sin opción "Educadores" ni de saltear (Task 2); botón de confirmar bloqueado hasta que todos los pendientes tengan rama (Task 2); persistencia de la excepción nueva en `CONFIG.excepciones_rama_dni` en el mismo formato existente, agregando sin duplicar (Task 3); paso manual de deploy documentado, y el paso manual viejo (excepción manual a mano) marcado como obsoleto (Task 4). Todo lo del spec está cubierto.
 
 **Placeholders:** ninguno — todos los pasos tienen código completo y verificaciones con salida esperada concreta.
 
 **Consistencia de tipos:** `procesarFilasNomina` devuelve `pendientesRama: Array<{dni, apellido, nombre}>` (Task 1), consumido igual por `mostrarVistaPreviaNomina`/`pendientesRamaActual` (Task 2). El payload `nuevasExcepciones: [{dni, rama}, ...]` que arma `confirmarCargaNomina` (Task 2) es exactamente lo que espera `validarNuevasExcepciones_` en el backend (Task 3: `ex.dni`, `ex.rama`). El formato de `CONFIG.excepciones_rama_dni` (`dni:rama;dni:rama`) es el mismo que ya parsea `parsearExcepcionesRama` en el frontend — no se introduce un formato nuevo.
+
+## Desviaciones respecto al plan original
+
+**`procesarFilasNomina` — precedencia de "rama confirmada" y limpieza de `validas` (Task 1):** la revisión de esta tarea encontró que el código original de este plan (Step 1) usaba `indicePorDni` para decidir si un candidato a pendiente ya estaba resuelto por otra fila — pero esa condición también incluía filas resueltas solo por el fallback genérico a "Educadores", que no es una señal confiable de rama confirmada. La versión final agrega un `Set` `dnisConRamaConfirmada` que solo se completa cuando la rama vino de una excepción o de un match exacto de Función (nunca del fallback), y usa ese Set para el filtro de `pendientesRama`. Además, y por fuera del código literal que traía este plan, se agregó un paso de limpieza posterior al loop principal: si un DNI termina en `pendientesRama`, cualquier entrada suya en `validas` (colada ahí solo por el fallback genérico) se saca y se descuenta de `porRama` — sin este paso, ese DNI quedaba simultáneamente en `validas` (como "Educadores") y en `pendientesRama`, y al confirmar la carga el backend rechazaba todo el envío con "DNI repetido en la carga". Verificado con casos de 3+ personas y remoción en el medio del array (iteración hacia atrás con `splice`, patrón seguro). Ver `.superpowers/sdd/task-1-report.md` para el detalle completo.
+
+**Filas de "Representante Juvenil" malformadas ahora cuentan como error (Task 1):** el código original de este plan las descartaba en silencio (sin incrementar ningún contador) si el DNI era inválido o el nombre no tenía coma. La versión final las suma a `errores`, igual que cualquier otra fila malformada de la función — así los contadores de la vista previa (`porRama` + `descartadas` + `errores`) siempre concilian contra el total de filas del archivo.
