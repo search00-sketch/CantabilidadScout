@@ -318,7 +318,7 @@ Expected:
 {
   validas: [ ['30111222','Pérez','Juan','Caminantes'], ['30333444','Gómez','Ana','Unidad'] ],
   porRama: { Manada: 0, Unidad: 1, Caminantes: 1, Rovers: 0 },
-  descartadas: 3,   // Rastelli, Mammana, y la 2da fila de Pérez (todas con función no reconocida)
+  descartadas: 3,   // Ríos, Ibarra, y la 2da fila de Pérez (todas con función no reconocida)
   errores: 1,       // fila sin Dni
   duplicados: 0     // la 2da fila de Pérez se descarta por función no reconocida antes de llegar a la lógica de duplicados
 }
@@ -427,7 +427,7 @@ document.getElementById('btn-confirmar-nomina').disabled;
 document.getElementById('nomina-preview-tbody').textContent;
 filasNominaValidas;
 ```
-Expected: `classList.contains('hidden')` da `false`, `btn-confirmar-nomina.disabled` da `false`, el texto de la tabla incluye `Caminantes1` y `Unidad1`, y `filasNominaValidas` es exactamente `[['30111222','Pérez','Juan','Caminantes'], ['30333444','Gómez','Ana','Unidad']]` — el DNI 12345671 (Rastelli, Asistente Zonal) queda afuera, y el nombre `"Pérez, Juan"` quedó entero en una sola columna del CSV (no se partió por la coma al parsear el archivo).
+Expected: `classList.contains('hidden')` da `false`, `btn-confirmar-nomina.disabled` da `false`, el texto de la tabla incluye `Caminantes1` y `Unidad1`, y `filasNominaValidas` es exactamente `[['30111222','Pérez','Juan','Caminantes'], ['30333444','Gómez','Ana','Unidad']]` — el DNI 12345671 (Ríos, Asistente Zonal) queda afuera, y el nombre `"Pérez, Juan"` quedó entero en una sola columna del CSV (no se partió por la coma al parsear el archivo).
 
 - [ ] **Step 8: Agregar `confirmarCargaNomina()` y mostrar la fecha de actualización en `mostrarDashboard()`**
 

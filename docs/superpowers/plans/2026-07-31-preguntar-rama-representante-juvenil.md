@@ -464,7 +464,7 @@ api = async (accion, payload) => {
 await confirmarCargaNomina();
 beneficiariosData;
 ```
-Expected: la llamada logueada a `api` muestra `payload.beneficiarios` con 2 filas (Geniola y Medina Torres con rama `'Caminantes'`) y `payload.nuevasExcepciones` = `[{ dni: '12345676', rama: 'Caminantes' }]`. `beneficiariosData` termina con esas mismas 2 filas.
+Expected: la llamada logueada a `api` muestra `payload.beneficiarios` con 2 filas (Ledesma y Medina Torres con rama `'Caminantes'`) y `payload.nuevasExcepciones` = `[{ dni: '12345676', rama: 'Caminantes' }]`. `beneficiariosData` termina con esas mismas 2 filas.
 
 (Después de este test, recargar la página — quedaron pisadas las funciones `confirm` y `api` globales.)
 
@@ -608,7 +608,7 @@ git commit -m "feat: guardar nuevas excepciones de rama en CONFIG al confirmar l
 
 - [ ] **Step 1: Actualizar la sección de Beneficiarios**
 
-Buscar el punto 2 existente en `INSTRUCCIONES.md` (el que documenta la excepción manual de Cecilia Medina Torres — buscar `"Excepción de rama para un caso puntual"`). Ese paso manual queda obsoleto con esta feature: ya no hace falta agregarlo a mano, la próxima carga de nómina la va a mostrar como pendiente y va a guardar la excepción sola al confirmar. Reemplazar ese punto por:
+Buscar el punto 2 existente en `INSTRUCCIONES.md` (el que documenta la excepción manual de un caso puntual detectado en la nómina real — buscar `"Excepción de rama para un caso puntual"`). Ese paso manual queda obsoleto con esta feature: ya no hace falta agregarlo a mano, la próxima carga de nómina la va a mostrar como pendiente y va a guardar la excepción sola al confirmar. Reemplazar ese punto por:
 
 ```markdown
 2. **Excepción de rama para "Representante Juvenil" (ya no requiere paso manual):** antes había que agregar a mano en `CONFIG` la excepción de una beneficiaria detectada con este rol. Desde esta actualización, la vista previa de la carga detecta automáticamente cualquier fila cuya Función contenga "Representante Juvenil" sin excepción configurada, pide la rama real en un desplegable, y la guarda sola en `CONFIG.excepciones_rama_dni` al confirmar — no hace falta editar la planilla a mano para este caso ni para futuros similares.
@@ -634,7 +634,7 @@ git commit -m "docs: actualizar instrucciones para preguntar rama de Representan
 
 ## Self-Review
 
-**Spec coverage:** detección de "representante juvenil" case-insensitive por substring, sin match exacto ni prefijo anclado (Task 1); el DNI con otra fila que resuelve rama gana, sin importar el orden (Task 1, mismo mecanismo que el desempate de duplicados ya existente); selector de rama por pendiente en la vista previa, sin opción "Educadores" ni de saltear (Task 2); botón de confirmar bloqueado hasta que todos los pendientes tengan rama (Task 2); persistencia de la excepción nueva en `CONFIG.excepciones_rama_dni` en el mismo formato existente, agregando sin duplicar (Task 3); paso manual de deploy documentado, y el paso manual viejo (excepción de Cecilia a mano) marcado como obsoleto (Task 4). Todo lo del spec está cubierto.
+**Spec coverage:** detección de "representante juvenil" case-insensitive por substring, sin match exacto ni prefijo anclado (Task 1); el DNI con otra fila que resuelve rama gana, sin importar el orden (Task 1, mismo mecanismo que el desempate de duplicados ya existente); selector de rama por pendiente en la vista previa, sin opción "Educadores" ni de saltear (Task 2); botón de confirmar bloqueado hasta que todos los pendientes tengan rama (Task 2); persistencia de la excepción nueva en `CONFIG.excepciones_rama_dni` en el mismo formato existente, agregando sin duplicar (Task 3); paso manual de deploy documentado, y el paso manual viejo (excepción manual a mano) marcado como obsoleto (Task 4). Todo lo del spec está cubierto.
 
 **Placeholders:** ninguno — todos los pasos tienen código completo y verificaciones con salida esperada concreta.
 

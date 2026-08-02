@@ -120,7 +120,7 @@ Expected:
 {
   validas: [ ['12345673','Funes','Ricardo Omar','Educadores'], ['12345675','Ledesma','Bruno','Unidad'] ],
   porRama: { Manada: 0, Unidad: 1, Caminantes: 0, Rovers: 0, Educadores: 1 },
-  descartadas: 2,   // Barone (Padre representante) y la fila con Función vacía
+  descartadas: 2,   // Peralta (Padre representante) y la fila con Función vacía
   errores: 0,
   duplicados: 0
 }
