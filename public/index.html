@@ -726,8 +726,10 @@
 
         function poblarBeneficiarios() {
             const select = document.getElementById('ingreso-beneficiario');
+            const ordenados = [...beneficiariosData].sort((a, b) =>
+                `${a[1]}, ${a[2]}`.localeCompare(`${b[1]}, ${b[2]}`, 'es-AR'));
             let html = '<option value="">Seleccionar</option>';
-            beneficiariosData.forEach(row => {
+            ordenados.forEach(row => {
                 html += `<option value="${escapeHtml(row[0])}">${escapeHtml(row[1])}, ${escapeHtml(row[2])} (${escapeHtml(row[3])})</option>`;
             });
             select.innerHTML = html;
