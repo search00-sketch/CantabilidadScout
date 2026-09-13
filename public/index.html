@@ -1426,9 +1426,16 @@
                         monto: monto
                     });
                     const up = await api('uploadComprobante', { numero: r.numero, fecha, beneficiario: r.beneficiario, monto, base64 });
-                    if (up.link) {
+                    // Chequeo explícito de tipo: si `up` fuera un string suelto (respuesta
+                    // inesperada del servidor) en vez del objeto {link}, `up.link` resolvería al
+                    // método nativo String.prototype.link en vez de undefined, y window.open()
+                    // terminaría abriendo "function link() { [native code] }" como URL.
+                    if (up && typeof up === 'object' && typeof up.link === 'string' && up.link) {
                         mostrarMensaje('ingreso-mensaje-container', '✅ Ingreso y comprobante guardados correctamente', 'success');
                         window.open(up.link, '_blank');
+                    } else {
+                        console.error('uploadComprobante devolvió una respuesta inesperada:', up);
+                        mostrarMensaje('ingreso-mensaje-container', '⚠️ El ingreso se guardó, pero el comprobante no se pudo abrir (respuesta inesperada del servidor). Buscalo en la hoja COMPROBANTES.', 'warning');
                     }
                 } catch (e2) {
                     mostrarMensaje('ingreso-mensaje-container', '⚠️ El ingreso se guardó, pero falló el comprobante: ' + e2.message, 'warning');
