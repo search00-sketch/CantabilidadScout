@@ -695,6 +695,27 @@
             return data.data;
         }
 
+        // Reintenta automáticamente una acción de solo LECTURA (bootstrap/getMovimientos) ante
+        // fallas transitorias del servidor. El panel de Ejecuciones de Apps Script muestra que
+        // el script casi siempre termina "Completada" del lado del servidor aunque la respuesta
+        // no llegue al navegador (falla en la capa de entrega de Google, no en el script) — para
+        // una lectura, reintentar no tiene riesgo. NUNCA usar con acciones que escriben datos
+        // (addIngreso, addEgreso, uploadComprobante, actualizarBeneficiarios): si la escritura ya
+        // se hizo en el servidor y la respuesta se perdió, reintentar la duplicaría.
+        async function apiConReintento(action, intentos = 3) {
+            let ultimoError;
+            for (let i = 0; i < intentos; i++) {
+                try {
+                    return await api(action);
+                } catch (e) {
+                    ultimoError = e;
+                    if (e.message === 'Sesión vencida') throw e;
+                    if (i < intentos - 1) await new Promise(r => setTimeout(r, 800 * (i + 1)));
+                }
+            }
+            throw ultimoError;
+        }
+
         // ========== CARGA INICIAL ==========
         async function mostrarDashboard() {
             document.getElementById('login-screen').classList.add('hidden');
@@ -702,7 +723,7 @@
             document.getElementById('fecha-actual').textContent = new Date().toLocaleDateString('es-AR');
             document.getElementById('user-email').textContent = currentUser || 'Usuario';
             try {
-                const data = await api('bootstrap');
+                const data = await apiConReintento('bootstrap');
                 configData = data.config || {};
                 beneficiariosData = data.beneficiarios || [];
                 categoriasData = data.categorias || [];
@@ -718,7 +739,7 @@
 
         async function refrescarMovimientos() {
             try {
-                movimientos = await api('getMovimientos');
+                movimientos = await apiConReintento('getMovimientos');
             } catch (e) {
                 console.error(e);
             }
