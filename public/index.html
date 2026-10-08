@@ -387,7 +387,7 @@
                                         <option value="Viáticos">Viáticos</option>
                                         <option value="Farmacia">Farmacia</option>
                                         <option value="Premios/Regalos">Premios/Regalos</option>
-                                        <option value="Devolución Rover">Devolución Rover</option>
+                                        <option value="Devolucion Rover">Devolución Rover</option>
                                     </select>
                                 </div>
                             </div>
@@ -1188,26 +1188,36 @@
             const fechaInicio = periodo === 'anual' ? '2026-03-01' : '2025-07-01';
             const fechaFin = periodo === 'anual' ? '2027-03-01' : '2026-06-30';
 
+            // Rubro y categoría de presupuesto se cruzan sin distinguir tildes/mayúsculas
+            // ("Devolución Rover" del egreso = "Devolucion Rover" del presupuesto).
+            const clave = s => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+            const nombres = {};
+
             const ejecutado = {};
             for (let row of movimientos.egresos) {
                 const fecha = String(row[0] || '');
                 if (fecha >= fechaInicio && fecha <= fechaFin) {
                     const categoria = row[1] || 'Otros';
-                    ejecutado[categoria] = formatearNumero((ejecutado[categoria] || 0) + (Number(row[4]) || 0));
+                    const k = clave(categoria);
+                    if (!nombres[k]) nombres[k] = categoria;
+                    ejecutado[k] = formatearNumero((ejecutado[k] || 0) + (Number(row[4]) || 0));
                 }
             }
 
             const presupuestos = {};
             categoriasData.forEach(cat => {
-                presupuestos[cat[1]] = formatearNumero(Number(cat[3]) || 0);
+                const k = clave(cat[1]);
+                nombres[k] = cat[1];
+                presupuestos[k] = formatearNumero((presupuestos[k] || 0) + (Number(cat[3]) || 0));
             });
 
             const todasCategorias = new Set([...Object.keys(presupuestos), ...Object.keys(ejecutado)]);
             const tbody = document.getElementById('tabla-ejecucion-body');
             let html = '';
-            for (let cat of Array.from(todasCategorias).sort()) {
-                const pres = presupuestos[cat] || 0;
-                const ejec = ejecutado[cat] || 0;
+            for (let k of Array.from(todasCategorias).sort()) {
+                const cat = nombres[k];
+                const pres = presupuestos[k] || 0;
+                const ejec = ejecutado[k] || 0;
                 const diff = formatearNumero(pres - ejec);
                 const porcentaje = pres > 0 ? ((ejec / pres) * 100).toFixed(1) : 0;
                 html += `
