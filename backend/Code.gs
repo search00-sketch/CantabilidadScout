@@ -10,6 +10,8 @@
  *   FOLDER_INGRESOS      -> ID carpeta Drive para adjuntos de ingresos
  *   FOLDER_COMPROBANTES  -> ID carpeta Drive para comprobantes generados
  *   SPREADSHEET_ID       -> (opcional) solo si el script NO está vinculado
+ *   GEMINI_API_KEY       -> (opcional) clave gratuita de Google AI Studio para "Leer factura"
+ *   GEMINI_MODEL         -> (opcional) modelo a probar primero; si no, se usan los de GEMINI_MODELOS_
  */
 
 const PROPS = PropertiesService.getScriptProperties();
@@ -53,6 +55,7 @@ function ejecutar_(action, p, user) {
     case 'addEgreso':             return addEgreso_(p, user);
     case 'uploadComprobante':     return uploadComprobante_(p);
     case 'actualizarBeneficiarios': return actualizarBeneficiarios_(p, user);
+    case 'leerFactura':           return leerFactura_(p);
     default: throw new Error('Acción desconocida: ' + action);
   }
 }
@@ -410,6 +413,115 @@ function compartirPorLink_(file) {
   } catch (e) {
     console.error('No se pudo compartir por link: ' + e);
   }
+}
+
+// ========== LECTURA DE FACTURAS (Gemini) ==========
+// Se prueban en orden: si uno no existe o agotó la cuota gratuita del día, se usa el siguiente.
+const GEMINI_MODELOS_ = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-3-flash-preview'];
+
+/**
+ * Lee la foto/PDF de una factura y devuelve los campos sugeridos para el egreso.
+ * No guarda nada: el archivo se sube recién cuando se guarda el egreso.
+ */
+function leerFactura_(p) {
+  const key = PROPS.getProperty('GEMINI_API_KEY');
+  if (!key) throw new Error('La lectura de facturas no está configurada (falta GEMINI_API_KEY)');
+
+  const archivo = p.archivo || {};
+  const mime = String(archivo.mimeType || '');
+  if (!archivo.base64 || !(mime.indexOf('image/') === 0 || mime === 'application/pdf')) {
+    throw new Error('Elegí una foto o un PDF de la factura');
+  }
+  if (String(archivo.base64).length > 14 * 1024 * 1024) throw new Error('El archivo es demasiado grande para leerlo');
+
+  const rubros = (Array.isArray(p.rubros) ? p.rubros : [])
+    .map(function(r) { return String(r).slice(0, 60); })
+    .filter(function(r) { return r; })
+    .slice(0, 50);
+
+  const prompt = [
+    'Sos un asistente contable de un grupo scout de Argentina. Te paso la foto o PDF de una factura,',
+    'ticket o recibo de una compra. Extraé estos datos:',
+    '- fecha: fecha de emisión en formato YYYY-MM-DD (en el papel suele estar como dd/mm/aaaa). Vacío si no se ve.',
+    '- monto: el TOTAL final pagado, como número sin símbolos ni separadores de miles (ej. 15430.50). 0 si no se ve.',
+    '- comprobante: número de comprobante tal como figura, ej. "0001-00012345" (punto de venta y número). Vacío si no hay.',
+    '- detalle: texto breve (máx. 80 caracteres) con el comercio y qué se compró, ej. "Ferretería López - pintura y rodillos".',
+    '- rubro: el más adecuado de esta lista, escrito exactamente igual: ' + rubros.join(' | ') + '. Vacío si ninguno encaja.',
+    'Si la imagen no es un comprobante de compra, devolvé todos los campos vacíos.'
+  ].join('\n');
+
+  const body = {
+    contents: [{ parts: [
+      { text: prompt },
+      { inline_data: { mime_type: mime, data: archivo.base64 } }
+    ] }],
+    generationConfig: {
+      temperature: 0,
+      responseMimeType: 'application/json',
+      responseSchema: {
+        type: 'OBJECT',
+        properties: {
+          fecha: { type: 'STRING' },
+          monto: { type: 'NUMBER' },
+          comprobante: { type: 'STRING' },
+          detalle: { type: 'STRING' },
+          rubro: { type: 'STRING' }
+        },
+        required: ['fecha', 'monto', 'comprobante', 'detalle', 'rubro']
+      }
+    }
+  };
+
+  const preferido = PROPS.getProperty('GEMINI_MODEL');
+  const modelos = (preferido ? [preferido] : [])
+    .concat(GEMINI_MODELOS_.filter(function(m) { return m !== preferido; }));
+  let ultimoCodigo = 0;
+  for (let i = 0; i < modelos.length; i++) {
+    const res = UrlFetchApp.fetch(
+      'https://generativelanguage.googleapis.com/v1beta/models/' + modelos[i] + ':generateContent',
+      {
+        method: 'post',
+        contentType: 'application/json',
+        headers: { 'x-goog-api-key': key },
+        payload: JSON.stringify(body),
+        muteHttpExceptions: true
+      });
+    ultimoCodigo = res.getResponseCode();
+    if (ultimoCodigo === 200) return normalizarFactura_(JSON.parse(res.getContentText()), rubros);
+    console.error('Gemini ' + modelos[i] + ': ' + ultimoCodigo + ' ' + res.getContentText().slice(0, 300));
+    // 404 = modelo inexistente, 429 = cuota agotada, 5xx = caído: probar el siguiente.
+    if (ultimoCodigo !== 404 && ultimoCodigo !== 429 && ultimoCodigo < 500) break;
+  }
+  if (ultimoCodigo === 429) {
+    throw new Error('Se agotó la cuota gratuita de lectura de facturas por hoy. Completá los datos a mano.');
+  }
+  throw new Error('No se pudo leer la factura. Completá los datos a mano.');
+}
+
+/** Limpia la respuesta de Gemini. Función pura: no confía en el formato que devuelve el modelo. */
+function normalizarFactura_(respuesta, rubros) {
+  let datos;
+  try {
+    datos = JSON.parse(respuesta.candidates[0].content.parts[0].text) || {};
+  } catch (e) {
+    throw new Error('No se pudo interpretar la factura. Completá los datos a mano.');
+  }
+  const sinTildes = function(s) {
+    return String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+  };
+
+  const fecha = /^\d{4}-\d{2}-\d{2}$/.test(String(datos.fecha || '')) ? String(datos.fecha) : '';
+  const monto = Number(datos.monto);
+  const rubroLeido = sinTildes(datos.rubro || '');
+  const rubro = rubros.filter(function(r) { return sinTildes(r) === rubroLeido; })[0] || '';
+
+  return {
+    fecha: fecha,
+    monto: monto > 0 ? Math.round(monto * 100) / 100 : 0,
+    comprobante: String(datos.comprobante || '').slice(0, 40),
+    detalle: String(datos.detalle || '').slice(0, 120),
+    rubro: rubro
+  };
 }
 
 // ========== HELPERS ==========

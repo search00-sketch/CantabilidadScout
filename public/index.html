@@ -367,7 +367,7 @@
                         <button class="btn btn-primary btn-sm" onclick="showSection('dashboard')">Volver</button>
                     </div>
                     <div class="card">
-                        <form id="form-egreso" onsubmit="return guardarEgreso(event)" novalidate>
+                        <form id="form-egreso" onsubmit="return guardarEgreso(event)" onreset="document.getElementById('btn-leer-factura').disabled = true" novalidate>
                             <div class="grid">
                                 <div class="form-group"><label for="egreso-fecha">Fecha *</label><input type="date" id="egreso-fecha" class="form-control" required aria-required="true"></div>
                                 <div class="form-group"><label for="egreso-rubro">Rubro *</label>
@@ -409,8 +409,9 @@
                             </div>
                             <div class="form-group">
                                 <label for="egreso-archivo">Archivo (PDF o Imagen)</label>
-                                <input type="file" id="egreso-archivo" class="form-control" accept="image/*,application/pdf" onchange="mostrarInfoArchivo(this, 'egreso-file-info')">
+                                <input type="file" id="egreso-archivo" class="form-control" accept="image/*,application/pdf" onchange="mostrarInfoArchivo(this, 'egreso-file-info'); document.getElementById('btn-leer-factura').disabled = !this.files.length;">
                                 <div id="egreso-file-info" class="file-info hidden" aria-live="polite"></div>
+                                <button type="button" class="btn btn-primary btn-sm" id="btn-leer-factura" onclick="leerFactura()" disabled style="margin-top: 8px;">🤖 Leer factura</button>
                             </div>
                             <div class="text-right">
                                 <button type="reset" class="btn" style="background:#ddd;">Cancelar</button>
@@ -1467,6 +1468,73 @@
                 setLoading('btn-guardar-ingreso', false);
             }
             return false;
+        }
+
+        // ========== LEER FACTURA (Gemini) ==========
+        // Achica las fotos antes de mandarlas a leer: alcanza para el texto y sube mucho más rápido.
+        // El archivo original (sin achicar) es el que se guarda en Drive al guardar el egreso.
+        function imagenParaLeer(file) {
+            return new Promise(resolve => {
+                const url = URL.createObjectURL(file);
+                const img = new Image();
+                img.onload = () => {
+                    const escala = Math.min(1, 1600 / Math.max(img.width, img.height));
+                    const canvas = document.createElement('canvas');
+                    canvas.width = Math.round(img.width * escala);
+                    canvas.height = Math.round(img.height * escala);
+                    canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+                    URL.revokeObjectURL(url);
+                    resolve({ mimeType: 'image/jpeg', base64: canvas.toDataURL('image/jpeg', 0.85).split(',')[1] });
+                };
+                // Formato que el navegador no sabe dibujar (p. ej. HEIC): se manda tal cual.
+                img.onerror = async () => {
+                    URL.revokeObjectURL(url);
+                    resolve({ mimeType: file.type, base64: await archivoABase64(file) });
+                };
+                img.src = url;
+            });
+        }
+
+        async function leerFactura() {
+            const file = document.getElementById('egreso-archivo').files[0];
+            if (!file) return;
+            if (file.size > 10 * 1024 * 1024) {
+                mostrarMensaje('egreso-mensaje-container', '⚠️ El archivo es demasiado grande (máx 10MB)', 'warning');
+                return;
+            }
+            const btn = document.getElementById('btn-leer-factura');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading-spinner"></span> Leyendo...';
+            try {
+                const archivo = file.type === 'application/pdf'
+                    ? { mimeType: file.type, base64: await archivoABase64(file) }
+                    : await imagenParaLeer(file);
+                const rubros = Array.from(document.getElementById('egreso-rubro').options)
+                    .map(o => o.value).filter(Boolean);
+                const d = await api('leerFactura', { archivo, rubros });
+
+                if (d.fecha) document.getElementById('egreso-fecha').value = d.fecha;
+                if (d.monto > 0) document.getElementById('egreso-monto').value = d.monto;
+                if (d.comprobante) document.getElementById('egreso-comprobante').value = d.comprobante;
+                if (d.detalle) document.getElementById('egreso-detalle').value = d.detalle;
+                if (d.rubro) {
+                    document.getElementById('egreso-rubro').value = d.rubro;
+                    toggleCampoRamaEgreso();
+                }
+                const algo = d.fecha || d.monto > 0 || d.comprobante || d.detalle || d.rubro;
+                mostrarMensaje('egreso-mensaje-container', algo
+                    ? '✅ Factura leída. Revisá los datos antes de guardar.'
+                    : '⚠️ No se reconocieron datos en la imagen. Completalos a mano.', algo ? 'success' : 'warning');
+            } catch (e) {
+                console.error('Error:', e);
+                const msg = /Acción desconocida/.test(e.message)
+                    ? 'La lectura de facturas todavía no está activada en el servidor.'
+                    : e.message;
+                mostrarMensaje('egreso-mensaje-container', '❌ ' + msg, 'error');
+            } finally {
+                btn.disabled = !document.getElementById('egreso-archivo').files.length;
+                btn.innerHTML = '🤖 Leer factura';
+            }
         }
 
         // ========== GUARDAR EGRESO ==========

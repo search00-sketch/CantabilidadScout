@@ -97,6 +97,21 @@ No hace falta cambiar la estructura de columnas de la planilla: `BENEFICIARIOS` 
 
 Después de este paso, hacer `firebase deploy --only hosting` para publicar el `index.html` actualizado con la nueva sección "Beneficiarios".
 
+## Pendiente: Leer factura con IA (Gemini, gratis)
+
+En Cargar Egreso, al elegir la foto o PDF de la factura aparece el botón **🤖 Leer factura**: completa Fecha, Monto, N° de comprobante, Detalle y sugiere el Rubro. Siempre hay que revisar antes de guardar. La factura se sigue guardando en Drive como antes, al guardar el egreso.
+
+Pasos manuales para activarlo:
+
+1. **Crear la clave gratuita:** entrá a [aistudio.google.com/apikey](https://aistudio.google.com/apikey) con tu cuenta de Google → *Create API key*. Usá un proyecto **sin facturación activada**, así nunca puede cobrar nada (si se agota la cuota del día, simplemente deja de leer hasta el día siguiente).
+2. **Guardarla en el backend:** editor de Apps Script → ⚙️ Configuración del proyecto → Propiedades del script → agregar `GEMINI_API_KEY` con la clave. La clave queda solo en el servidor, nunca en la página.
+3. **Actualizar el código:** en el editor de Apps Script, agregar el `case 'leerFactura'` en `ejecutar_` y las funciones `leerFactura_` y `normalizarFactura_` (sección "LECTURA DE FACTURAS" de `backend/Code.gs`) → Implementar → Administrar implementaciones → editar la implementación existente → Nueva versión → Implementar. La primera vez puede pedir autorizar "conectarse a un servicio externo".
+
+Notas:
+- La cuota gratuita de Gemini es por modelo y por día, y Google la cambia sin aviso. Se prueban varios modelos en orden (`GEMINI_MODELOS_`); si uno no existe o se agotó, pasa al siguiente. Para forzar otro modelo, agregá la propiedad `GEMINI_MODEL`. Límites vigentes: [ai.dev/usage?tab=rate-limit](https://ai.dev/usage?tab=rate-limit).
+- En el plan gratuito, Google puede usar las imágenes enviadas para mejorar sus productos.
+- Si el botón dice "todavía no está activada en el servidor", falta el paso 3.
+
 ## Pendiente: Fondo de Programa por Rama
 
 Cambios de código ya hechos en este repo (backend/Code.gs y public/index.html). Faltan estos 3 pasos manuales para que tengan efecto:
