@@ -372,22 +372,7 @@
                                 <div class="form-group"><label for="egreso-fecha">Fecha *</label><input type="date" id="egreso-fecha" class="form-control" required aria-required="true"></div>
                                 <div class="form-group"><label for="egreso-rubro">Rubro *</label>
                                     <select id="egreso-rubro" class="form-control" required aria-required="true" onchange="toggleCampoRamaEgreso()">
-                                        <option value="">Seleccionar</option>
-                                        <option value="Mantenimiento">Mantenimiento</option>
-                                        <option value="Programa">Programa</option>
-                                        <option value="Limpieza">Limpieza</option>
-                                        <option value="Merienda">Merienda</option>
-                                        <option value="Campamento">Campamento</option>
-                                        <option value="Eventos">Eventos</option>
-                                        <option value="Formación">Formación</option>
-                                        <option value="Donaciones">Donaciones</option>
-                                        <option value="Proveduría">Proveduría</option>
-                                        <option value="Librería">Librería</option>
-                                        <option value="Distrito">Distrito</option>
-                                        <option value="Viáticos">Viáticos</option>
-                                        <option value="Farmacia">Farmacia</option>
-                                        <option value="Premios/Regalos">Premios/Regalos</option>
-                                        <option value="Devolucion Rover">Devolución Rover</option>
+                                        <option value="">Cargando...</option>
                                     </select>
                                 </div>
                             </div>
@@ -710,6 +695,7 @@
                 categoriasData = data.categorias || [];
                 movimientos = data.movimientos || { ingresos: [], egresos: [] };
                 poblarBeneficiarios();
+                poblarRubrosEgreso();
                 cargarSaldos();
                 cargarDeudores();
                 mostrarFechaActualizacionNomina();
@@ -724,6 +710,16 @@
             } catch (e) {
                 console.error(e);
             }
+        }
+
+        // Los rubros de egreso salen de la hoja CATEGORIAS (Tipo=Egreso, Activo=SI): la misma lista
+        // que usa Ejecución Presupuestaria. Para agregar o quitar un rubro se edita esa hoja, no el código.
+        function poblarRubrosEgreso() {
+            const select = document.getElementById('egreso-rubro');
+            const nombres = [...new Set(categoriasData.map(c => String(c[1]).trim()).filter(Boolean))];
+            select.innerHTML = '';
+            select.add(new Option(nombres.length ? 'Seleccionar' : 'Sin rubros activos en CATEGORIAS', ''));
+            nombres.forEach(n => select.add(new Option(n, n)));
         }
 
         function poblarBeneficiarios() {
